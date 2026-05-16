@@ -18,7 +18,9 @@ at two browser tabs.
 - Each run is plotted as its own series in every chart, with a stable
   per-run colour from a fixed palette.
 - The summary table above the charts has one row per run, comparing
-  command, wall duration, peak RSS, CPU time, and exit code.
+  command, wall duration, peak RSS, CPU time, and exit code. Each
+  row's label cell carries a colour swatch matching that run's chart
+  series.
 - `--label LABEL:PATH` overrides the default filename-based label for
   that report. `--label` can be repeated; the last one wins on
   conflict.
@@ -29,11 +31,29 @@ at two browser tabs.
   invocation.
 - When no `--label` is given for a positional, the file's stem (the
   filename without the `.json` extension) is the default label.
-- The legend names each series by its run label, optionally suffixed
-  with the metric variant (`user` / `sys` for CPU; `RSS` / `VSZ` for
-  memory; `read` / `write` for IO).
-- The shared cursor crosshair syncs across panels so the user reads
-  every metric for the same timestamp at once.
+
+### Colour palette
+
+- The palette is a fixed cycle of 8 hues (Tableau-derived): blue,
+  orange, green, red, purple, brown, pink, gray. Each hue has a
+  **dark** and **light** variant: dark for the primary metric on a
+  multi-series chart (RSS, user CPU, IO read), light for the
+  secondary on the same chart (VSZ, system CPU, IO write). Same hue
+  per run keeps each run's series visually grouped across charts.
+- A run's palette index is its position in the loaded list (modulo
+  palette length). Re-ordering inputs changes colours; this is by
+  design — the colour is determined by argument order, not content.
+
+### Cursor snapping with sparse overlays
+
+- Different runs sample at different absolute timestamps, so the
+  X-axis union of `t_ms` values has many positions where only one
+  run has a real value. Without intervention, hovering at one of
+  those X positions would show "value / —" for the other runs.
+- The cursor snaps **per series** to that series' nearest non-null
+  sample (tie-break: prefer the earlier index). So at any hovered X
+  the legend reads a real value for every run, even if those values
+  came from slightly different absolute timestamps.
 
 ## Non-functional constraints
 
@@ -91,7 +111,15 @@ Given a single positional report with no `--label`:
 
 ## Notes
 
-- The decision to colour by run and dash by metric variant keeps each
-  chart readable even with two or three runs. Beyond 4-5 runs the
-  user should consider breaking the comparison into pairs.
+- The decision to colour by run and use the light/dark variant per
+  metric keeps each chart readable even with two or three runs.
+  Beyond 4-5 runs the user should consider breaking the comparison
+  into pairs.
+- Cross-panel cursor sync (one hover shows readings on every chart at
+  the same X) and live-legend stability are not diff-mode-specific —
+  they apply to single-run views too. Those behaviours live in
+  [`viewer-chart-interaction`](viewer-chart-interaction.md).
+- The chart inventory (which metrics share each chart, and the
+  primary/secondary convention) is in
+  [`viewer-chart-inventory`](viewer-chart-inventory.md).
 - Related: `viewer-self-contained-html`.

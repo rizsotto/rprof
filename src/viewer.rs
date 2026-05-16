@@ -303,6 +303,7 @@ mod tests {
         }
     }
 
+    // Requirements: viewer-chart-inventory
     #[test]
     fn render_html_emits_complete_document() {
         let html = render_html(&[loaded("only", "echo")]).unwrap();
@@ -311,11 +312,49 @@ mod tests {
         assert!(html.contains("uPlot"), "uPlot bundle should be embedded");
         assert!(html.contains("id=\"rprof-data\""));
         assert!(html.contains("\"label\":\"only\""));
-        assert!(html.contains("chart-cpu"));
-        assert!(html.contains("chart-mem"));
-        assert!(html.contains("chart-threads"));
-        assert!(html.contains("chart-fds"));
-        assert!(html.contains("chart-io"));
+        // The five chart panels appear in the documented order. Match the
+        // div's id attribute specifically so we don't pick up `#chart-mem`
+        // selectors in the inlined CSS.
+        let positions: Vec<_> = [
+            "id=\"chart-cpu\"",
+            "id=\"chart-mem\"",
+            "id=\"chart-threads\"",
+            "id=\"chart-fds\"",
+            "id=\"chart-io\"",
+        ]
+        .iter()
+        .map(|id| html.find(id).expect("chart id present"))
+        .collect();
+        assert!(
+            positions.windows(2).all(|w| w[0] < w[1]),
+            "chart containers should appear in inventory order"
+        );
+    }
+
+    // Requirements: viewer-chart-interaction
+    #[test]
+    fn render_html_carries_interaction_machinery() {
+        // Loose tombstone: the rendered HTML must include the load-bearing
+        // pieces that deliver the interaction contract (cross-panel cursor
+        // sync, collapsibility, stable legend). Each is a substring assertion
+        // rather than a behavioural test — the actual interaction is
+        // exercised by hand via `scripts/dogfood.sh`.
+        let html = render_html(&[loaded("only", "echo")]).unwrap();
+        // Shared cursor across panels.
+        assert!(
+            html.contains("sync"),
+            "cursor sync configuration must be present"
+        );
+        // Collapse toggle is created by viewer.js with this class name.
+        assert!(
+            html.contains("chart-toggle"),
+            "collapse toggle class must be referenced"
+        );
+        // Legend stability: tabular numerals + per-chart min-width.
+        assert!(
+            html.contains("tabular-nums"),
+            "legend tabular-numerals styling must be present"
+        );
     }
 
     #[test]
