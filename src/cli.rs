@@ -52,10 +52,13 @@ pub struct RunArgs {
 #[derive(Debug, clap::Args)]
 pub struct ViewArgs {
     /// One or more JSON report files to render. Multiple files trigger diff mode.
-    #[arg(required = true)]
+    ///
+    /// May be omitted if at least one `--label LABEL:PATH` is provided.
     pub reports: Vec<PathBuf>,
 
-    /// Label a report. Format: `label:path`. May be repeated.
+    /// Label a report. Format: `label:path`. May be repeated. Labels override
+    /// the default filename-based label and may stand alone in place of a
+    /// positional report path.
     #[arg(long = "label", value_parser = parse_label)]
     pub labels: Vec<(String, PathBuf)>,
 
