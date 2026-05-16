@@ -135,20 +135,18 @@ grep -rn "Requirements:.*capture-signal-forwarding" src/ tests/
 
 ## Coverage check
 
-There is currently no automated coverage script — adding one is tracked
-informally and would belong here as `check-coverage.sh`. The manual check is:
+Every `status: implemented` requirement must have at least one tagged
+test. CI enforces this via the lint job; you can run the same check
+locally:
 
-```bash
-for f in requirements/*.md; do
-  id=$(basename "$f" .md)
-  [ "$id" = "CLAUDE" ] && continue
-  status=$(awk '/^status:/{print $2; exit}' "$f")
-  [ "$status" = "implemented" ] || continue
-  if ! grep -rq "Requirements:.*\b${id}\b" src/ tests/; then
-    echo "no tests tag implemented requirement: $id"
-  fi
-done
+```sh
+sh scripts/check-coverage.sh
 ```
+
+The script exits 0 when every implemented requirement is covered and
+exits 1 listing the gaps otherwise. Requirements at any other status
+(`proposed`, `accepted`, `planned`, `in-progress`, `deferred`,
+`rejected`) are skipped — they may not have tests yet, by design.
 
 ## Things that do NOT belong here
 

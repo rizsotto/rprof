@@ -9,6 +9,7 @@ artefacts; these are humans-and-agents-only conveniences.
 | File | Purpose |
 |---|---|
 | `dogfood.sh` | Dogfood `rprof` by running it against a `cargo build` of its own source, then rendering the viewer. Default: build → capture release & debug profiles → render HTML. Subcommands: `build`, `capture`, `view`, `all`. |
+| `check-coverage.sh` | Verify every `status: implemented` requirement has at least one test tagged with `Requirements: <id>`. Exits non-zero with the list of gaps. Wired into the CI lint job; runnable locally. |
 
 ## When to reach for these
 
