@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! Backend-agnostic sampler interface.
 //!
 //! A [`Sampler`] produces a [`RawSample`] on each tick. Computing CPU

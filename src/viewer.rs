@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! `rprof view` implementation. Renders one or more JSON reports as a
 //! self-contained HTML file with inlined uPlot charts.
 

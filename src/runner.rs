@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! `rprof run` implementation.
 //!
 //! Spawns the user's command with inherited stdio, polls `/proc/<pid>` on a

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! Parsers for `/proc/<pid>/{stat,statm,status,io}` and helpers that read
 //! file descriptors from `/proc/<pid>/fd`.
 //!

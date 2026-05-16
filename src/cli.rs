@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! Command-line entry point. The actual subcommand implementations live in
 //! [`crate::runner`] and [`crate::viewer`].
 

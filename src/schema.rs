@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! JSON schema for rprof reports.
 //!
 //! The schema is per-sample (one object per timestamp) — this is more verbose

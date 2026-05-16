@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! `rprof` — process resource profiler.
 //!
 //! The library is intentionally exposed so integration tests and other

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! End-to-end tests for `rprof view`.
 
 #![cfg(target_os = "linux")]
