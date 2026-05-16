@@ -24,6 +24,16 @@ enum Cmd {
     Run(RunArgs),
     /// Render one or more JSON reports as a self-contained HTML file.
     View(ViewArgs),
+    /// Hidden test fixture: allocate `mb` megabytes of resident memory, then
+    /// sleep for `seconds`. Used by integration tests to validate the peak
+    /// RSS accuracy acceptance criterion.
+    #[command(name = "__alloc-fixture", hide = true)]
+    AllocFixture {
+        /// Megabytes of heap to allocate and dirty.
+        mb: usize,
+        /// Seconds to hold the allocation alive.
+        seconds: f64,
+    },
 }
 
 #[derive(Debug, clap::Args)]
@@ -111,7 +121,28 @@ pub fn run() -> Result<u8> {
     match cli.cmd {
         Cmd::Run(args) => crate::runner::run(args).context("rprof run failed"),
         Cmd::View(args) => crate::viewer::run(args).context("rprof view failed"),
+        Cmd::AllocFixture { mb, seconds } => alloc_fixture(mb, seconds),
     }
+}
+
+/// Allocate and dirty `mb` megabytes of heap, then hold it for `seconds`.
+///
+/// `vec![0u8; n]` is *not* enough on Linux: zeroed u8 allocations get backed
+/// by the kernel's shared zero page (CoW), so RSS stays tiny. We touch one
+/// byte per 4 KiB page with a non-zero value to force real page allocation.
+fn alloc_fixture(mb: usize, seconds: f64) -> Result<u8> {
+    let bytes = mb.saturating_mul(1024 * 1024);
+    let mut buf: Vec<u8> = vec![0u8; bytes];
+    const PAGE: usize = 4096;
+    let mut i = 0;
+    while i < bytes {
+        buf[i] = 0xa5;
+        i += PAGE;
+    }
+    std::hint::black_box(&buf);
+    std::thread::sleep(Duration::from_secs_f64(seconds.max(0.0)));
+    drop(buf);
+    Ok(0)
 }
 
 #[cfg(test)]

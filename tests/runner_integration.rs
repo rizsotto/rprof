@@ -207,6 +207,55 @@ fn run_forwards_sigint_and_still_writes_report() {
 }
 
 #[test]
+fn run_peak_rss_matches_known_allocation_within_5pct() {
+    // Acceptance criterion: "the reported peak RSS for a program that
+    // allocates a known buffer matches the program's actual peak within 5%."
+    //
+    // We use the hidden `__alloc-fixture` subcommand of rprof itself as the
+    // workload: it allocates a fixed-size buffer and holds it. The expected
+    // peak RSS is roughly `mb` MiB plus a small process overhead (the rprof
+    // binary's own .text/.bss, runtime, libc). A 64 MiB allocation makes the
+    // overhead proportionally negligible.
+    let mb: u64 = 64;
+    let tmp = tempfile::tempdir().unwrap();
+    let out = tmp.path().join("alloc.json");
+    let bin = rprof_bin();
+    let status = Command::new(&bin)
+        .args([
+            "run",
+            "-o",
+            out.to_str().unwrap(),
+            "--interval",
+            "20ms",
+            "--",
+        ])
+        .arg(&bin)
+        .args(["__alloc-fixture", &mb.to_string(), "0.6"])
+        .status()
+        .expect("rprof should run");
+    assert!(status.success(), "fixture run should succeed");
+
+    let r = load_report(&out);
+    let expected_bytes = mb * 1024 * 1024;
+    let actual = r.summary.peak_rss_bytes;
+
+    // Spec allows ±5% accuracy on the *known* allocation. We allow a small
+    // additive headroom for the rprof process's own footprint (well under
+    // 10 MiB in release) before comparing.
+    let process_overhead = 16 * 1024 * 1024;
+    let lower = (expected_bytes as f64 * 0.95) as u64;
+    let upper = ((expected_bytes as f64 * 1.05) as u64) + process_overhead;
+    assert!(
+        actual >= lower && actual <= upper,
+        "peak_rss {} not within ±5% of {} MiB allocation (allowed: {}..{})",
+        actual,
+        mb,
+        lower,
+        upper,
+    );
+}
+
+#[test]
 fn run_help_mentions_double_dash_separator() {
     let out = Command::new(rprof_bin())
         .args(["run", "--help"])
