@@ -13,33 +13,69 @@ wherever a browser is available.
 cargo install --path .
 ```
 
+The release binary is a single static file (≈1 MB) with no runtime
+dependencies. Drop it into a container image or CI step and it works.
+
 ## Capture
 
 ```
 rprof run -o build-report.json -- cargo build --release
 rprof run --interval 50ms -o slow.json -- ./slow-script.sh
+rprof run --include-children -o tree.json -- make ci
 ```
 
 The `--` separator is mandatory: everything after it is forwarded verbatim to
 the child. The child inherits stdin/stdout/stderr and `rprof` mirrors its exit
-code.
+code, so `rprof run` is drop-in compatible with shell pipelines. SIGINT,
+SIGTERM and SIGHUP delivered to `rprof` are forwarded to the child, and the
+JSON report is always written — Ctrl-C in CI never drops the data.
+
+Without `-o`, the report lands under `./.rprof/<timestamp>.json`.
+
+### Metrics captured per sample
+
+- CPU% split into user and system (delta of `/proc/<pid>/stat` ticks)
+- RSS and VSZ in bytes
+- Thread count
+- Open file descriptors
+- IO bytes read and written (from `/proc/<pid>/io`)
+
+The summary header also records peak RSS, total user/system CPU time (from
+`getrusage(RUSAGE_CHILDREN)`), exit code or signal, command line, environment
+fingerprint, host metadata, and the sample backend used.
 
 ## View
 
 ```
 rprof view build-report.json
+rprof view run-a.json run-b.json
 rprof view --label before:before.json --label after:after.json
 rprof view --no-open -o report.html run.json
 ```
 
-The viewer writes a self-contained HTML file (data + JS + CSS inlined) and
-opens it via `xdg-open` / `open`. With `--no-open` the HTML is written to the
-given path or stdout.
+The viewer writes a self-contained HTML file (uPlot bundle, CSS, and report
+data inlined into one file, ≈60 KB plus the data) and opens it via `xdg-open`
+on Linux or `open` on macOS. With `--no-open` the HTML is written to the
+given `-o` path or to stdout — useful for attaching to a bug report or pull
+request artifact.
+
+Passing multiple reports overlays them on every chart with per-run colors and
+a shared cursor across panels. `--label LABEL:PATH` overrides the default
+filename-based label in the legend and summary table.
 
 ## Status
 
-Phase 1: `/proc`-based capture on Linux. macOS and cgroup v2 are planned for
-later phases. See [`idea.md`](idea.md) for the full design and roadmap.
+**v1 functional.** Phase 1–3 of the roadmap in [`idea.md`](idea.md) are
+complete:
+
+- `/proc`-based capture on Linux (x86_64, aarch64)
+- JSON schema v1 with versioned reports
+- Self-contained HTML viewer with overlay/diff mode and shared crosshair
+- Signal forwarding and exit-code propagation
+- 52 unit + integration tests covering acceptance criteria
+
+Planned for later phases: cgroup v2 backend, macOS `libproc` backend, prebuilt
+release artifacts via `cargo dist`.
 
 ## License
 
