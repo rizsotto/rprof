@@ -89,6 +89,53 @@ pub struct Sample {
     pub io_write_bytes: u64,
 }
 
+/// Canonical v1 report example, also reproduced in
+/// `requirements/schema-v1.md`. Embedded here so the example in the
+/// requirement is kept honest by a unit test (`canonical_example_parses`)
+/// that parses it.
+#[cfg(test)]
+const CANONICAL_EXAMPLE_JSON: &str = r#"{
+  "schema_version": 1,
+  "tool": {"name": "rprof", "version": "0.1.0"},
+  "run": {
+    "command": ["sleep", "0.1"],
+    "cwd": "/tmp",
+    "env_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+    "start_time": "2026-05-14T10:30:00.000Z",
+    "wall_duration_ms": 100,
+    "exit_code": 0,
+    "signal": null,
+    "backend": "proc",
+    "sample_interval_ms": 100
+  },
+  "host": {
+    "hostname": "h",
+    "kernel": "Linux 6.8.0",
+    "cpu_count": 4,
+    "total_memory_bytes": 17179869184
+  },
+  "summary": {
+    "peak_rss_bytes": 1048576,
+    "user_cpu_ms": 12,
+    "system_cpu_ms": 3,
+    "sample_count": 1
+  },
+  "samples": [
+    {
+      "t_ms": 0,
+      "wall_ms": 1700000000000,
+      "cpu_user_pct": 0.0,
+      "cpu_sys_pct": 0.0,
+      "rss_bytes": 1048576,
+      "vsz_bytes": 2097152,
+      "threads": 1,
+      "open_fds": 4,
+      "io_read_bytes": 0,
+      "io_write_bytes": 0
+    }
+  ]
+}"#;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -145,6 +192,30 @@ mod tests {
         assert_eq!(SCHEMA_VERSION, 1);
     }
 
+    // Requirements: schema-v1
+    #[test]
+    fn canonical_example_parses() {
+        // The same JSON document is reproduced in requirements/schema-v1.md.
+        // If this test fails after editing the requirement, update one or the
+        // other so they stay in sync.
+        let r: Report =
+            serde_json::from_str(CANONICAL_EXAMPLE_JSON).expect("canonical example must parse");
+        assert_eq!(r.schema_version, SCHEMA_VERSION);
+        assert_eq!(r.tool.name, "rprof");
+        assert_eq!(r.run.command, vec!["sleep", "0.1"]);
+        assert_eq!(r.run.exit_code, Some(0));
+        assert_eq!(r.run.signal, None);
+        assert_eq!(r.run.backend, "proc");
+        assert_eq!(r.host.cpu_count, 4);
+        assert_eq!(r.summary.sample_count, 1);
+        assert_eq!(r.samples.len(), 1);
+        let s = &r.samples[0];
+        assert_eq!(s.t_ms, 0);
+        assert_eq!(s.cpu_user_pct, 0.0);
+        assert_eq!(s.rss_bytes, 1_048_576);
+    }
+
+    // Requirements: schema-v1
     #[test]
     fn additive_fields_tolerated_on_read() {
         // A report with an extra field at the run level should still parse.
