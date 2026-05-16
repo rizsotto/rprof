@@ -50,5 +50,11 @@ All under `dogfood/` at the project root (gitignored):
   need those, run them outside the script.
 - Outputs land under `dogfood/` only. Do not write into `target/`, `.rprof/`,
   or anywhere else under the project root.
-- Keep the script POSIX-ish bash (`set -euo pipefail`). No Python, Node, or
-  cargo plugins.
+- Scripts use POSIX `sh`, not bash. Shebang is `#!/bin/sh` and the script
+  must run unmodified under dash (Ubuntu's `/bin/sh`, and the shell CI
+  uses). Concretely: no `[[ ... ]]` (use `[ ... ]` with `=`, not `==`),
+  no arrays, no `set -o pipefail`, no `<<<` here-strings, no
+  bash-only parameter expansions. `set -eu` is the standard prologue.
+  `local` inside functions is fine — dash, ash, busybox sh, and mksh
+  all support it, even though it is not in POSIX.
+- No Python, Node, or cargo plugins.

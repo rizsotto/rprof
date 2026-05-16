@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # Dogfood rprof against a `cargo build` of its own source.
 #
 # Usage:
@@ -11,8 +11,10 @@
 # The fast inner loop for viewer changes is `view`: it rebuilds rprof
 # incrementally (reusing the dev `target/` cache) and re-renders the HTML
 # from the cached JSON, without paying the cost of another full capture.
+#
+# POSIX sh; no bashisms.
 
-set -euo pipefail
+set -eu
 
 cmd="${1:-all}"
 
@@ -49,18 +51,17 @@ stage_workload() {
 }
 
 capture_one() {
-    local profile=$1 out_json=$2
+    local profile=$1
+    local out_json=$2
     local work="$dogfood/workload-$profile"
     log "Staging workload for $profile build → $work"
     stage_workload "$work"
     log "Capturing $profile build → $out_json"
-    local args=(run -o "$out_json" --)
-    if [[ "$profile" == "release" ]]; then
-        args+=(cargo build --release)
+    if [ "$profile" = "release" ]; then
+        (cd "$work" && "$bin" run -o "$out_json" -- cargo build --release)
     else
-        args+=(cargo build)
+        (cd "$work" && "$bin" run -o "$out_json" -- cargo build)
     fi
-    (cd "$work" && "$bin" "${args[@]}")
 }
 
 capture() {
@@ -69,7 +70,7 @@ capture() {
 }
 
 view() {
-    if [[ ! -f "$release_json" || ! -f "$debug_json" ]]; then
+    if [ ! -f "$release_json" ] || [ ! -f "$debug_json" ]; then
         echo "error: missing captured JSON under $dogfood/. Run \`$0 capture\` first." >&2
         exit 1
     fi
