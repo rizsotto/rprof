@@ -140,6 +140,7 @@ mod proc_backend {
 mod tests {
     use super::*;
 
+    // Requirements: capture-proc-backend
     #[test]
     fn proc_sampler_returns_self_metrics() {
         let mut s = ProcSampler::new(std::process::id(), false);
@@ -150,6 +151,7 @@ mod tests {
         assert_eq!(s.name(), "proc");
     }
 
+    // Requirements: capture-proc-backend
     #[test]
     fn proc_sampler_returns_none_for_missing_pid() {
         // PID_MAX on Linux is 4194304; this won't exist.
@@ -158,6 +160,7 @@ mod tests {
         assert!(raw.is_none(), "missing pid should be None");
     }
 
+    // Requirements: capture-process-tree
     #[test]
     fn proc_sampler_include_children_does_not_fail_for_leaf_process() {
         // The test process has no children of its own most of the time; the

@@ -395,6 +395,7 @@ mod tests {
         )
     }
 
+    // Requirements: capture-cpu-pct
     #[test]
     fn compute_samples_first_sample_has_zero_cpu() {
         let raw = vec![raw_at(0, 0, 0)];
@@ -404,6 +405,7 @@ mod tests {
         assert_eq!(s[0].cpu_sys_pct, 0.0);
     }
 
+    // Requirements: capture-cpu-pct
     #[test]
     fn compute_samples_pegging_one_core_is_about_100_pct() {
         // 1 second elapsed, exactly CLK_TCK user ticks burned → 100% user CPU.
@@ -418,6 +420,7 @@ mod tests {
         assert!(s[1].cpu_sys_pct.abs() < 0.5);
     }
 
+    // Requirements: capture-cpu-pct
     #[test]
     fn compute_samples_handles_two_cores_pegged() {
         let ticks_per_sec = clock_ticks_per_second() as u64;

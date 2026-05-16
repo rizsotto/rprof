@@ -31,6 +31,7 @@ fn capture_report(dir: &std::path::Path, name: &str, sleep_seconds: &str) -> Pat
     out
 }
 
+// Requirements: viewer-self-contained-html
 #[test]
 fn view_no_open_writes_html_to_stdout() {
     let tmp = tempfile::tempdir().unwrap();
@@ -52,6 +53,7 @@ fn view_no_open_writes_html_to_stdout() {
     assert!(html.contains("chart-cpu"));
 }
 
+// Requirements: viewer-self-contained-html
 #[test]
 fn view_no_open_with_output_writes_file() {
     let tmp = tempfile::tempdir().unwrap();
@@ -77,6 +79,7 @@ fn view_no_open_with_output_writes_file() {
     assert!(html.contains("uPlot"));
 }
 
+// Requirements: viewer-diff-mode
 #[test]
 fn view_overlays_two_reports_with_labels() {
     let tmp = tempfile::tempdir().unwrap();
@@ -103,6 +106,7 @@ fn view_overlays_two_reports_with_labels() {
     assert!(html.contains("2 runs"));
 }
 
+// Requirements: viewer-diff-mode
 #[test]
 fn view_uses_filename_as_default_label() {
     let tmp = tempfile::tempdir().unwrap();
@@ -131,6 +135,7 @@ fn view_rejects_no_inputs() {
     assert!(!out.status.success(), "view with no reports should fail");
 }
 
+// Requirements: schema-v1
 #[test]
 fn view_rejects_unknown_schema_version() {
     let tmp = tempfile::tempdir().unwrap();
