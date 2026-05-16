@@ -17,6 +17,18 @@ All three must pass before committing. Fix the underlying issue; never bypass
 hooks. Integration tests build the `rprof` binary on demand, so the first
 `cargo test` after a checkout takes longer.
 
+### Commit messages
+
+- Imperative subject under 70 characters. An area prefix is encouraged
+  (e.g. `docs:`, `ci:`, `deps:`, `feat:`, `fix:`, `test:`) but the list
+  is not exhaustive — pick whatever makes the scan-line clear.
+- Blank line, then a wrapped body explaining the *why*. The diff
+  shows the *what*.
+- Reference a requirement ID (e.g. `capture-signal-forwarding`) when
+  the commit implements or modifies that contract.
+- Reference an issue or PR only if it adds context the body can't.
+- No trailing summary of changes — the diff is authoritative.
+
 ## Build
 
 ```bash
@@ -140,7 +152,7 @@ fix, but cite the requirement in the test if one exists.
 - No speculative abstractions, no error handling for impossible cases.
 - Comments explain *why*, not *what*. Default to none unless the reader
   would otherwise need to re-derive a subtle invariant.
-- Every Rust source and test file starts with `// SPDX-License-Identifier: MIT`.
+- File-header rules (SPDX) live in [`src/CLAUDE.md`](src/CLAUDE.md).
 
 ## Licensing
 

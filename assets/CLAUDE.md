@@ -40,7 +40,8 @@ permission notice as the MIT licence requires.
 ### First-party files (`viewer.js`, `viewer.css`)
 
 These are MIT-licensed alongside the rest of rprof. They do not carry per-file
-SPDX headers — only `.rs` files do, by project convention.
+SPDX headers; see [`../src/CLAUDE.md`](../src/CLAUDE.md) for the file-header
+rules (which apply only to `.rs` files).
 
 ### Adding a new asset
 

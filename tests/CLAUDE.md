@@ -16,8 +16,9 @@ the bottom of each `src/*.rs`).
 
 ## Conventions
 
-- Every test file starts with `// SPDX-License-Identifier: MIT` and is gated
-  with `#![cfg(target_os = "linux")]` because the runner requires `/proc`.
+- Every test file is gated with `#![cfg(target_os = "linux")]` because the
+  runner requires `/proc`. File-header rules (SPDX) are documented once in
+  [`../src/CLAUDE.md`](../src/CLAUDE.md) and apply equally here.
 - Tests must clean up after themselves. Use `tempfile::tempdir()` for any
   files; never write into the repo root or `./.rprof/` (except the one test
   that exercises the auto-output path, which uses `current_dir()` on a

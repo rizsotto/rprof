@@ -9,6 +9,7 @@ so integration tests in `tests/` can reuse types and helpers.
 | File | Responsibility |
 |---|---|
 | `main.rs` | Thin shim. Calls `cli::run()` and translates the result into a `ExitCode`. |
+| `lib.rs` | Library root. Declares the `pub` module surface (`cli`, `schema`, `proc_parse` [linux-only], `sampler`, `runner`, `viewer`) that integration tests in `tests/` link against. Add new top-level modules here. |
 | `cli.rs` | `clap` parsing for `run` and `view` plus a hidden `__alloc-fixture` test helper. Dispatches to `runner` / `viewer`. |
 | `schema.rs` | Frozen JSON schema (v1) with `serde` derives. `SCHEMA_VERSION` is the version gate the viewer checks. |
 | `proc_parse.rs` | Linux-only. Parsers for `/proc/<pid>/stat` (`ProcStat`) and `/proc/<pid>/io` (`ProcIo`), plus helpers `count_fds()` over `/proc/<pid>/fd/` and `read_children()` over `/proc/<pid>/task/*/children`. String-in / struct-out so fixtures drive the parser tests. |

@@ -116,9 +116,15 @@ grep -rn "Requirements:.*capture-signal-forwarding" src/ tests/
 
 ## How agents should use this directory
 
-1. **Before adding a feature**: search for an existing requirement. If none
-   exists, draft one with `status: proposed` and stop — wait for user
-   approval before writing code.
+1. **Before adding a feature**: search for an existing requirement.
+   - If none exists, draft one with `status: proposed` and stop — wait
+     for user approval before writing code.
+   - If one exists at `status: planned` and its Notes still list
+     **Open questions**, stop and resolve those with the user first.
+     Promote the requirement to `accepted` (with the open questions
+     answered) before writing any code. A `planned` spec is by
+     definition incomplete; treating it as a green light leads to
+     implementations that miss the still-undecided parts.
 2. **Before changing behaviour**: find the governing requirement and read
    its acceptance criteria. Those are the contracts that must not break.
 3. **After implementing**: flip the requirement to `status: implemented`

@@ -47,8 +47,10 @@ files under `/proc/<pid>/`.
 - `ProcIo::parse` ignores fields it does not care about and defaults
   missing fields to zero; older kernels and unprivileged processes
   may produce empty `io` files.
-- The sampler in `src/sampler.rs::proc_backend` wraps the parsers and
-  composes the optional tree walk (see `capture-process-tree`).
+- `ProcSampler` in `src/sampler.rs` wraps the parsers and composes the
+  optional tree walk (see [`capture-process-tree`](capture-process-tree.md)).
+  The struct is the canonical entry point; the internal `proc_backend`
+  module is an implementation detail.
 
 ## Known limitations
 
