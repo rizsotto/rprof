@@ -83,6 +83,5 @@ Given `rprof run --help`:
 ## Notes
 
 - The decision to require `--` (rather than letting rprof's flag parser
-  stop at the first positional) is captured in `idea.md`'s "User
-  Experience" section. It avoids the classic "did rprof eat my flag?"
-  foot-gun that `time(1)` and similar wrappers suffer from.
+  stop at the first positional) avoids the classic "did rprof eat my
+  flag?" foot-gun that `time(1)` and similar wrappers suffer from.

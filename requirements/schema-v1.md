@@ -40,8 +40,7 @@ viewers.
   object per timestamp) rather than columnar (parallel arrays per
   metric). The rationale: low memory use during capture, simple
   streaming, and trivial `jq` access. Columnar is ~3x smaller on disk
-  but adds complexity; the trade-off was accepted in `idea.md`
-  Phase 0.
+  but adds complexity; row-major was chosen at v1 design time.
 - Unknown fields are tolerated on read (serde's default for derived
   structs). The unit test `additive_fields_tolerated_on_read` pins
   this behaviour against future drift.

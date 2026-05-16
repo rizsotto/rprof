@@ -24,8 +24,12 @@ Areas in use today:
 
 ## Template
 
-Every requirement file starts with YAML frontmatter and follows this
-structure:
+Every requirement file starts with YAML frontmatter and follows the
+structure below. Files at `status: implemented` should fill every
+section; `proposed`, `accepted`, and `planned` files may legitimately
+omit `Non-functional constraints`, `Implementation details`, `Known
+limitations`, and `Testing` when those are still being decided — capture
+the unknowns under an `Open questions` block in `Notes` instead.
 
 ```markdown
 ---
@@ -71,9 +75,10 @@ Decisions, links to issues, future work.
 |---|---|
 | `proposed` | Captured but not reviewed; awaits user agreement. |
 | `accepted` | Reviewed and approved; ready for implementation. |
+| `planned` | Approved as future work; documented now so the spec is ready when picked up. No work currently underway. |
 | `in-progress` | Implementation underway. |
 | `implemented` | Code complete, tests passing. |
-| `deferred` | Accepted but intentionally postponed (give the reason in Notes). |
+| `deferred` | Accepted but intentionally postponed indefinitely (give the reason in Notes). |
 | `rejected` | Reviewed and declined (give the reason in Notes). |
 
 ## Linking tests to requirements
@@ -143,7 +148,8 @@ done
 
 - Step-by-step implementation guides — those go in code comments or the
   per-directory `CLAUDE.md` files.
-- Roadmap or vision — that lives in [`../idea.md`](../idea.md).
+- Roadmap, goals, or non-goals — those live in
+  [`../CLAUDE.md`](../CLAUDE.md) under "Project overview".
 - Bug reports or to-dos — those belong in the issue tracker.
 
 The requirements directory captures **what the software must do**, not how

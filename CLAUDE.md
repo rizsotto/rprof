@@ -37,8 +37,42 @@ viewer HTML is self-contained (uPlot bundled at compile time via
 | `rprof run -- <cmd>` | Spawn `<cmd>`, poll `/proc/<pid>` on a background thread, write a versioned JSON report on exit. |
 | `rprof view <r.json> [<r.json> ...]` | Render one or more reports as a self-contained HTML file with interactive uPlot charts. |
 
-Linux-first; macOS and the cgroup-v2 backend are deferred to later phases.
-See [`idea.md`](idea.md) for the full design and roadmap.
+### Project goals
+
+- Single static binary with no runtime dependencies. Drop it into a
+  container or CI image and it works.
+- Capture is non-invasive: no instrumentation, no `LD_PRELOAD`, no
+  `ptrace`. The target program is unaware it is being measured.
+- Output is plain JSON with a versioned schema. Trivially scriptable,
+  diffable, archivable.
+- Visualisation is a self-contained HTML file. No long-running server, no
+  port conflicts, no Python or Node required to view a report.
+- Diffing multiple runs is a first-class feature, not an afterthought.
+
+### Non-goals (v1)
+
+These are explicitly **out of scope**. New requirements that touch them
+need a separate decision rather than a quick "while we're at it":
+
+- Flamegraphs and stack sampling. These need a different acquisition path
+  (`perf`, eBPF, DTrace) and a different visualisation; future work
+  belongs in a separate subcommand.
+- Distributed tracing, network IO breakdown, GPU metrics,
+  per-syscall accounting.
+- Windows support. Linux is the primary target; macOS is best-effort.
+- A long-running daemon or system-wide monitor. `rprof` measures one
+  command invocation per process.
+
+Post-v1 *behavioural* plans are tracked as individual requirement files
+with `status: planned` in [`requirements/`](requirements/) — search the
+directory for the current backlog.
+
+Distribution and release engineering (prebuilt artefacts via `cargo
+dist`, a Homebrew tap, a `SCHEMA.md` cheat sheet, `CONTRIBUTING.md`)
+are intentionally **not** tracked under `requirements/`. That directory
+captures what the software does, not how it is shipped or documented.
+Those tasks belong to release planning and can live in the issue
+tracker when picked up.
 
 ## Routing — read before modifying
 

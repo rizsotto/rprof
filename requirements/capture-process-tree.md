@@ -50,8 +50,10 @@ rooted at the direct child.
 ## Known limitations
 
 - Short-lived grandchildren that live for less than the sample interval
-  are missed entirely. This is fundamental to the polling approach.
-  Documented in `idea.md`'s "Risks and open questions".
+  are missed entirely. This is fundamental to the polling approach;
+  the planned cgroup v2 backend (see
+  [`capture-cgroup-v2-backend`](capture-cgroup-v2-backend.md)) is the
+  intended fix.
 - VSZ is summed naively. Two processes that share memory mappings will
   appear to use twice as much VSZ as they really do. This matches what
   most `ps`-style tools report.
@@ -79,5 +81,5 @@ Given a script that spawns N children that live for several seconds:
 ## Notes
 
 - For accurate tree accounting that catches short-lived grandchildren,
-  the cgroup-v2 backend (deferred to phase 4) is the correct fix.
+  see [`capture-cgroup-v2-backend`](capture-cgroup-v2-backend.md).
 - Related: `capture-proc-backend`.

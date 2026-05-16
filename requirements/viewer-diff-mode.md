@@ -39,8 +39,9 @@ at two browser tabs.
 
 - The X axis is in absolute milliseconds (run-local) by default. Runs
   of unequal duration are not normalised; the longer run simply has a
-  longer X domain. A future `--align` flag for percent-of-wall-time
-  alignment is mentioned in `idea.md` Phase 3.
+  longer X domain. The future `--align` flag (see
+  [`viewer-x-axis-align`](viewer-x-axis-align.md)) will normalise to
+  percent-of-wall-time.
 - Up to ~8 runs render cleanly with the default palette. Beyond that,
   colours wrap around and the chart becomes hard to read; the legend
   still works correctly.
@@ -61,7 +62,8 @@ at two browser tabs.
 
 - No semantic diffing (e.g. "RSS grew by 12 %") is performed; the
   diff is purely visual.
-- Wall-clock alignment (`--align`) is deferred to phase 3.
+- Wall-clock alignment (`--align`) is planned future work; see
+  [`viewer-x-axis-align`](viewer-x-axis-align.md).
 - Two reports captured at very different sample intervals will look
   jagged when overlaid; the X axis union does not interpolate.
 

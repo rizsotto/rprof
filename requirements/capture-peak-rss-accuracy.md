@@ -72,6 +72,5 @@ Given a workload that allocates 64 MiB of dirtied heap and sleeps:
 - The fixture lives behind a hidden `__alloc-fixture` subcommand on
   rprof itself, so the integration test does not depend on Python,
   `dd`, or any other host tool.
-- The 5 % tolerance comes from `idea.md`'s "Acceptance criteria for
-  v1" section. Observed accuracy on Fedora 44 is ~3.5 % over (66.3 MiB
-  measured for a 64 MiB request in release builds).
+- Observed accuracy on Fedora 44 is ~3.5 % over (66.3 MiB measured for
+  a 64 MiB request in release builds).

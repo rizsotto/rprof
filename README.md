@@ -65,17 +65,16 @@ filename-based label in the legend and summary table.
 
 ## Status
 
-**v1 functional.** Phase 1–3 of the roadmap in [`idea.md`](idea.md) are
-complete:
+**v1 functional.** The behavioural contracts live in
+[`requirements/`](requirements/); the high-level project overview, non-goals,
+and post-v1 roadmap live in [`CLAUDE.md`](CLAUDE.md). v1 ships:
 
 - `/proc`-based capture on Linux (x86_64, aarch64)
 - JSON schema v1 with versioned reports
 - Self-contained HTML viewer with overlay/diff mode and shared crosshair
 - Signal forwarding and exit-code propagation
-- 52 unit + integration tests covering acceptance criteria
-
-Planned for later phases: cgroup v2 backend, macOS `libproc` backend, prebuilt
-release artifacts via `cargo dist`.
+- Unit + integration tests covering every acceptance criterion in
+  `requirements/`
 
 ## License
 

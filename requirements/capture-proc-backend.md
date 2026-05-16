@@ -53,12 +53,14 @@ files under `/proc/<pid>/`.
 ## Known limitations
 
 - This backend cannot see short-lived processes that live for less
-  than the sample interval. The cgroup-v2 backend (deferred to phase
-  4) does not have this limitation.
+  than the sample interval. The planned cgroup v2 backend
+  (see [`capture-cgroup-v2-backend`](capture-cgroup-v2-backend.md))
+  does not have this limitation.
 - `/proc/<pid>/io` is empty for processes the caller cannot ptrace.
   When that happens, IO counters stay at zero for the whole run.
-- Linux only. macOS support (`libproc` / `proc_pidinfo`) is in
-  phase 3 of the roadmap.
+- Linux only. macOS support via `libproc` / `proc_pidinfo` is planned
+  separately; see
+  [`capture-macos-backend`](capture-macos-backend.md).
 
 ## Testing
 
