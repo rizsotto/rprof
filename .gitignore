@@ -1,0 +1,7 @@
+/target
+/.rprof
+/.claude
+Cargo.lock.tmp
+*.swp
+*.swo
+.DS_Store
