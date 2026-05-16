@@ -63,19 +63,6 @@ Passing multiple reports overlays them on every chart with per-run colors and
 a shared cursor across panels. `--label LABEL:PATH` overrides the default
 filename-based label in the legend and summary table.
 
-## Status
-
-**v1 functional.** The behavioural contracts live in
-[`requirements/`](requirements/); the high-level project overview, non-goals,
-and post-v1 roadmap live in [`CLAUDE.md`](CLAUDE.md). v1 ships:
-
-- `/proc`-based capture on Linux (x86_64, aarch64)
-- JSON schema v1 with versioned reports
-- Self-contained HTML viewer with overlay/diff mode and shared crosshair
-- Signal forwarding and exit-code propagation
-- Unit + integration tests covering every acceptance criterion in
-  `requirements/`
-
 ## License
 
 MIT
