@@ -8,8 +8,9 @@ report `rprof view` emits.
 
 | File | Origin | Licence |
 |---|---|---|
-| `uPlot.iife.min.js` | Vendored from upstream uPlot 1.6.31 | MIT (see [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)) |
-| `uPlot.min.css` | Vendored from upstream uPlot 1.6.31 | MIT (see [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)) |
+| `uPlot.iife.min.js` | Vendored from upstream uPlot 1.6.31 (https://github.com/leeoniya/uPlot) | MIT (see [`uPlot.LICENSE`](uPlot.LICENSE)) |
+| `uPlot.min.css` | Vendored from upstream uPlot 1.6.31 (https://github.com/leeoniya/uPlot) | MIT (see [`uPlot.LICENSE`](uPlot.LICENSE)) |
+| `uPlot.LICENSE` | Upstream LICENSE preserved verbatim | MIT |
 | `viewer.js` | First-party rprof code | MIT (project licence) |
 | `viewer.css` | First-party rprof page styles | MIT (project licence) |
 
@@ -26,16 +27,15 @@ curl -sSL -o assets/uPlot.min.css      https://unpkg.com/uplot@${VER}/dist/uPlot
 ```
 
 Then:
-1. Update the version string in [`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md).
-2. Re-check the upstream LICENSE for changes; replace the embedded MIT text if
-   the copyright year or holder shifts.
+1. Update the version string in the table above.
+2. Re-fetch the upstream LICENSE and overwrite `uPlot.LICENSE` if anything
+   shifted (copyright year, holder, identifier).
 3. Run `cargo test` — the viewer unit tests check that the bundle string is
    present in the rendered HTML.
 
-The minified bundles ship with only a URL banner and no embedded licence text.
-That is why `THIRD_PARTY_NOTICES.md` reproduces the full MIT text — the notice
-file is the project's compliance with uPlot's MIT "copyright notice ... shall
-be included" condition.
+The minified bundles ship with only a URL banner and no embedded licence text,
+so `uPlot.LICENSE` next to them preserves the upstream copyright and
+permission notice as the MIT licence requires.
 
 ### First-party files (`viewer.js`, `viewer.css`)
 
@@ -48,10 +48,10 @@ Any new file added here must be:
 - Either first-party (and MIT-licensed by the project `LICENSE`), or
 - A third-party file with a compatible licence (MIT, Apache-2.0, BSD).
 
-If you add a new third-party asset, add an entry to
-[`../THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md) and update the table
-above. Wire it into `src/viewer.rs` via `include_str!` and pin a test in
-`src/viewer.rs` that asserts the new bundle appears in the rendered HTML.
+If you add a new third-party asset, add an entry to the table above
+recording its upstream URL, version, and licence. Wire it into
+`src/viewer.rs` via `include_str!` and pin a test in `src/viewer.rs` that
+asserts the new bundle appears in the rendered HTML.
 
 ## Size budget
 

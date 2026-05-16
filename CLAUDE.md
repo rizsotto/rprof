@@ -111,5 +111,5 @@ fix, but cite the requirement in the test if one exists.
 ## Licensing
 
 - Project: MIT (see `LICENSE`).
-- Bundled assets: see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-  Currently only uPlot 1.6.31 (MIT) is vendored.
+- Bundled assets: see [`assets/CLAUDE.md`](assets/CLAUDE.md). Currently only
+  uPlot 1.6.31 (MIT) is vendored.
