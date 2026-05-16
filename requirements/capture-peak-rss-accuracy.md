@@ -34,7 +34,7 @@ and regression detection.
 ## Implementation details
 
 - `ProcStat::rss_pages` is parsed from field 24 of `/proc/<pid>/stat`.
-- `ProcSampler::sample_pid()` multiplies by the page size obtained from
+- `ProcSampler::sample()` multiplies by the page size obtained from
   `sysconf(_SC_PAGESIZE)` at sampler construction time, defaulting to
   4096 if the syscall returns a non-positive value.
 - The runner takes `max(samples.rss_bytes)` at finalisation time and
@@ -43,13 +43,10 @@ and regression detection.
 ## Known limitations
 
 - Allocations made and freed *between* samples are missed entirely.
-  This is fundamental to the polling approach; the cgroup-v2 backend
-  (deferred) does not have this limitation.
-- RSS counts shared memory mappings against every process that maps
-  them. For a process with no children and no shared libs touched
-  beyond glibc, this is the same as the unique allocation; for
-  process trees with many sharers, the sum is an upper bound rather
-  than ground truth.
+  This is fundamental to the polling approach.
+- RSS counts shared memory mappings (e.g. glibc, libstdc++) against
+  the process that maps them. For a single-process workload this
+  matches what `ps`-style tools report.
 - The kernel's `MMU_PAGE_SIZE` is assumed equal to the `sysconf`
   reported page size. This is true for x86_64 and aarch64 today.
 

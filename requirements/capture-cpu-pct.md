@@ -36,13 +36,10 @@ above 100 % on a uniprocessor) need clear documented reasons.
   cumulative across all waited-for children of `rprof` (which is one
   child for v1).
 - The summary values may differ from the trapezoidal integral of the
-  per-sample percentages, because:
-  - Short-lived grandchildren that lived between samples are not
-    visible in the per-sample track but *are* included in the
-    `getrusage` total (when `--include-children` is on or the kernel
-    accounts them under the direct child).
-  - `getrusage` is accurate to microseconds; the per-sample track is
-    only as fine-grained as `--interval`.
+  per-sample percentages, because `getrusage` is accurate to
+  microseconds while the per-sample track is only as fine-grained as
+  `--interval`. Bursts shorter than the interval show up in the
+  summary but not on the chart.
 
 ## Non-functional constraints
 

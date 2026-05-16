@@ -52,8 +52,6 @@ pub struct Run {
     pub signal: Option<i32>,
     pub backend: String,
     pub sample_interval_ms: u64,
-    /// Whether process-tree aggregation was on. Direct child only by default.
-    pub include_children: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -110,7 +108,6 @@ mod tests {
                 signal: None,
                 backend: "proc".into(),
                 sample_interval_ms: 100,
-                include_children: false,
             },
             host: Host {
                 hostname: "h".into(),
@@ -164,7 +161,6 @@ mod tests {
                 "signal": null,
                 "backend": "proc",
                 "sample_interval_ms": 100,
-                "include_children": false,
                 "future_field": "ignored"
             },
             "host": {"hostname": "h", "kernel": "Linux", "cpu_count": 1, "total_memory_bytes": 0},

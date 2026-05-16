@@ -52,10 +52,6 @@ pub struct RunArgs {
     #[arg(long, default_value = "auto", value_parser = ["auto", "proc"])]
     pub backend: String,
 
-    /// Aggregate metrics across the whole process tree, not just the direct child.
-    #[arg(long)]
-    pub include_children: bool,
-
     /// Command to run. Everything after `--` is forwarded verbatim to the child.
     #[arg(trailing_var_arg = true, required = true, num_args = 1..)]
     pub command: Vec<String>,

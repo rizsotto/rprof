@@ -74,6 +74,16 @@ need a separate decision rather than a quick "while we're at it":
 - Windows support. Linux is the primary target; macOS is best-effort.
 - A long-running daemon or system-wide monitor. `rprof` measures one
   command invocation per process.
+- Process-tree resource aggregation. `rprof` reports the resource usage
+  of the single child process it spawned. Build wrappers, shells that
+  `exec` a tool, or workloads whose interesting work lives in
+  grandchildren are not in scope: summing across the tree double-counts
+  shared memory and FDs, hides which descendant drove a spike, and
+  conflicts with the "one process, one chart" mental model the viewer
+  is built around. Users who genuinely need tree-wide accounting
+  should reach for cgroup-level tools (`systemd-run --scope`, `cgexec`,
+  or `perf stat`); `/usr/bin/time -v` is also single-process and not a
+  substitute.
 
 Post-v1 *behavioural* plans are tracked as individual requirement files
 with `status: planned` in [`requirements/`](requirements/) — search the

@@ -28,11 +28,6 @@ already works portably on macOS.
 
 ## Open questions
 
-- **Process tree.** macOS does not expose `/proc/<pid>/task/*/children`;
-  `proc_listchildpids` is the typical replacement but has different
-  semantics around zombies and group membership. Document the
-  difference and decide whether `--include-children` is supported on
-  macOS at parity, with caveats, or not at all in the first cut.
 - **IO accounting.** Per-process IO bytes are not directly readable;
   the equivalent of `proc_pid_rusage` provides cumulative IO but with
   coarser fields. Decide whether to map them to the existing

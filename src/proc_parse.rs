@@ -112,36 +112,6 @@ pub fn count_fds(fd_dir: &Path) -> Result<u32> {
     Ok(n)
 }
 
-/// Children PIDs from `/proc/<pid>/task/*/children`. Each task directory has a
-/// `children` file with a space-separated list. We don't enumerate task IDs
-/// up front because new tasks can appear at any time.
-pub fn read_children(proc_pid_dir: &Path) -> Result<Vec<u32>> {
-    let task_dir = proc_pid_dir.join("task");
-    let read = match std::fs::read_dir(&task_dir) {
-        Ok(r) => r,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(e) => return Err(e).context(format!("read_dir {}", task_dir.display())),
-    };
-    let mut out = Vec::new();
-    for entry in read {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
-        let children_file = entry.path().join("children");
-        let contents = match std::fs::read_to_string(&children_file) {
-            Ok(s) => s,
-            Err(_) => continue,
-        };
-        for tok in contents.split_whitespace() {
-            if let Ok(pid) = tok.parse::<u32>() {
-                out.push(pid);
-            }
-        }
-    }
-    Ok(out)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -220,29 +190,5 @@ cancelled_write_bytes: 0
         let tmp = tempfile::tempdir().unwrap();
         let missing = tmp.path().join("does-not-exist");
         assert_eq!(count_fds(&missing).unwrap(), 0);
-    }
-
-    #[test]
-    fn read_children_aggregates_across_tasks() {
-        let tmp = tempfile::tempdir().unwrap();
-        let task = tmp.path().join("task");
-        std::fs::create_dir(&task).unwrap();
-        let t1 = task.join("100");
-        std::fs::create_dir(&t1).unwrap();
-        std::fs::write(t1.join("children"), "200 201 ").unwrap();
-        let t2 = task.join("101");
-        std::fs::create_dir(&t2).unwrap();
-        std::fs::write(t2.join("children"), "300\n").unwrap();
-
-        let mut got = read_children(tmp.path()).unwrap();
-        got.sort();
-        assert_eq!(got, vec![200, 201, 300]);
-    }
-
-    #[test]
-    fn read_children_returns_empty_when_task_dir_missing() {
-        let tmp = tempfile::tempdir().unwrap();
-        let got = read_children(tmp.path()).unwrap();
-        assert!(got.is_empty());
     }
 }

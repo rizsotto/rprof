@@ -21,8 +21,12 @@ dependencies. Drop it into a container image or CI step and it works.
 ```
 rprof run -o build-report.json -- cargo build --release
 rprof run --interval 50ms -o slow.json -- ./slow-script.sh
-rprof run --include-children -o tree.json -- make ci
 ```
+
+`rprof` measures the single child process you give it. Aggregating across
+the process tree (a wrapper shell, `make` driving sub-makes, etc.) is
+intentionally out of scope — reach for cgroup-level tools
+(`systemd-run --scope`, `cgexec`, `perf stat`) for that.
 
 The `--` separator is mandatory: everything after it is forwarded verbatim to
 the child. The child inherits stdin/stdout/stderr and `rprof` mirrors its exit

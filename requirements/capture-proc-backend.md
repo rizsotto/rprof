@@ -32,8 +32,7 @@ files under `/proc/<pid>/`.
 ## Non-functional constraints
 
 - Polling at the 100 ms default interval must not consume more than a
-  small single-digit percentage of one core, even when
-  `--include-children` walks a tree of hundreds of processes.
+  small single-digit percentage of one core.
 - Every read tolerates `ENOENT` mid-sample. Processes can disappear
   between `readdir` and `open`; that is normal, not an error.
 
@@ -47,17 +46,15 @@ files under `/proc/<pid>/`.
 - `ProcIo::parse` ignores fields it does not care about and defaults
   missing fields to zero; older kernels and unprivileged processes
   may produce empty `io` files.
-- `ProcSampler` in `src/sampler.rs` wraps the parsers and composes the
-  optional tree walk (see [`capture-process-tree`](capture-process-tree.md)).
-  The struct is the canonical entry point; the internal `proc_backend`
-  module is an implementation detail.
+- `ProcSampler` in `src/sampler.rs` wraps the parsers. The struct is
+  the canonical entry point; the internal `proc_backend` module is an
+  implementation detail.
 
 ## Known limitations
 
-- This backend cannot see short-lived processes that live for less
-  than the sample interval. The planned cgroup v2 backend
-  (see [`capture-cgroup-v2-backend`](capture-cgroup-v2-backend.md))
-  does not have this limitation.
+- This backend samples one PID — the direct child of `rprof run`.
+  Aggregating across the process tree is a non-goal (see the
+  Non-goals section in [`../CLAUDE.md`](../CLAUDE.md)).
 - `/proc/<pid>/io` is empty for processes the caller cannot ptrace.
   When that happens, IO counters stay at zero for the whole run.
 - Linux only. macOS support via `libproc` / `proc_pidinfo` is planned
@@ -75,14 +72,14 @@ Given the parsers in isolation:
 
 Given the sampler against the test process itself:
 
-> When `ProcSampler::new(std::process::id(), false).sample()` runs,
+> When `ProcSampler::new(std::process::id()).sample()` runs,
 > then it returns `Ok(Some(_))` with non-zero VSZ and RSS.
 > When the same sampler is constructed with a PID that does not exist,
 > `sample()` returns `Ok(None)`.
 
 ## Notes
 
-- Future backends (`cgroup_v2`, `libproc`) will plug in via the same
+- Future backends (e.g. `libproc` for macOS) will plug in via the same
   `Sampler` trait. The `run.backend` string is how reports declare
   which backend produced them.
 - The /proc layout is stable Linux kernel API. We pin to fields by

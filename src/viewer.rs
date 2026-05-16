@@ -268,7 +268,6 @@ mod tests {
                 signal: None,
                 backend: "proc".into(),
                 sample_interval_ms: 100,
-                include_children: false,
             },
             host: Host {
                 hostname: "h".into(),

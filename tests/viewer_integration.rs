@@ -145,7 +145,7 @@ fn view_rejects_unknown_schema_version() {
         r#"{
             "schema_version": 999,
             "tool": {"name":"rprof","version":"x"},
-            "run":{"command":["x"],"cwd":"/","env_fingerprint":"00","start_time":"2026-01-01T00:00:00Z","wall_duration_ms":0,"exit_code":0,"signal":null,"backend":"proc","sample_interval_ms":100,"include_children":false},
+            "run":{"command":["x"],"cwd":"/","env_fingerprint":"00","start_time":"2026-01-01T00:00:00Z","wall_duration_ms":0,"exit_code":0,"signal":null,"backend":"proc","sample_interval_ms":100},
             "host":{"hostname":"h","kernel":"x","cpu_count":1,"total_memory_bytes":0},
             "summary":{"peak_rss_bytes":0,"user_cpu_ms":0,"system_cpu_ms":0,"sample_count":0},
             "samples":[]

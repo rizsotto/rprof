@@ -68,11 +68,10 @@ fn run_linux(args: RunArgs) -> Result<u8> {
     install_signal_forwarder(child_pid as i32)?;
 
     let interval = args.interval;
-    let include_children = args.include_children;
     let (stop_tx, stop_rx) = channel::<()>();
 
     let sampler_handle = thread::spawn(move || -> Result<Vec<(u64, u64, RawSample)>> {
-        let mut sampler: Box<dyn Sampler> = Box::new(ProcSampler::new(child_pid, include_children));
+        let mut sampler: Box<dyn Sampler> = Box::new(ProcSampler::new(child_pid));
         let mut out: Vec<(u64, u64, RawSample)> = Vec::new();
         loop {
             let t_ms = start_instant.elapsed().as_millis() as u64;
@@ -119,7 +118,6 @@ fn run_linux(args: RunArgs) -> Result<u8> {
             signal,
             backend: "proc".to_string(),
             sample_interval_ms: interval.as_millis() as u64,
-            include_children,
         },
         host: host_metadata(),
         summary: Summary {

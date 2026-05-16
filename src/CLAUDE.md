@@ -12,7 +12,7 @@ so integration tests in `tests/` can reuse types and helpers.
 | `lib.rs` | Library root. Declares the `pub` module surface (`cli`, `schema`, `proc_parse` [linux-only], `sampler`, `runner`, `viewer`) that integration tests in `tests/` link against. Add new top-level modules here. |
 | `cli.rs` | `clap` parsing for `run` and `view` plus a hidden `__alloc-fixture` test helper. Dispatches to `runner` / `viewer`. |
 | `schema.rs` | Frozen JSON schema (v1) with `serde` derives. `SCHEMA_VERSION` is the version gate the viewer checks. |
-| `proc_parse.rs` | Linux-only. Parsers for `/proc/<pid>/stat` (`ProcStat`) and `/proc/<pid>/io` (`ProcIo`), plus helpers `count_fds()` over `/proc/<pid>/fd/` and `read_children()` over `/proc/<pid>/task/*/children`. String-in / struct-out so fixtures drive the parser tests. |
+| `proc_parse.rs` | Linux-only. Parsers for `/proc/<pid>/stat` (`ProcStat`) and `/proc/<pid>/io` (`ProcIo`), plus the `count_fds()` helper over `/proc/<pid>/fd/`. String-in / struct-out so fixtures drive the parser tests. |
 | `sampler.rs` | `Sampler` trait + Linux `ProcSampler` backend that wraps `proc_parse`. Returns `Ok(None)` when the target is gone. |
 | `runner.rs` | `rprof run`: spawn child, install signal forwarder, sample on a thread, compute CPU% from tick deltas, serialise and write the JSON. |
 | `viewer.rs` | `rprof view`: load reports, render the self-contained HTML, write or open. Embeds `assets/*` via `include_str!`. |
