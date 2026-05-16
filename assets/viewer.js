@@ -6,10 +6,21 @@
   /** @type {{label: string, report: object}[]} */
   const runs = data.runs;
 
+  // Paired colors (Tableau 20): [dark, light] per run. Dark is the primary
+  // metric (RSS, user CPU, read), light is the secondary on the same chart
+  // (VSZ, system CPU, write). Same hue per run keeps a run's series
+  // visually grouped across charts.
   const PALETTE = [
-    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-    "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"
+    ["#0d4f8b", "#1f77b4"], // blue
+    ["#b3590a", "#ff7f0e"], // orange
+    ["#1f7020", "#2ca02c"], // green
+    ["#971b1c", "#d62728"], // red
+    ["#684685", "#9467bd"], // purple
+    ["#5d3a31", "#8c564b"], // brown
+    ["#a14787", "#e377c2"], // pink
+    ["#525252", "#7f7f7f"]  // gray
   ];
+  const colorFor = (i, variant) => PALETTE[i % PALETTE.length][variant];
 
   // ---------- helpers ----------
   const escapeHtml = (s) =>
@@ -48,7 +59,7 @@
     "</tr>";
   const body = runs
     .map((r, i) => {
-      const color = PALETTE[i % PALETTE.length];
+      const color = colorFor(i, 0);
       const exit =
         r.report.run.signal != null
           ? `signal ${r.report.run.signal}`
@@ -116,14 +127,60 @@
   function plot(id, title, height, fmt, seriesDefs) {
     const el = document.getElementById(id);
     if (!el || seriesDefs.length === 0) return;
+    // Render our own title above the plot rather than using uPlot's so we
+    // can tighten its spacing to the plot (and away from the next chart).
+    const titleEl = document.createElement("div");
+    titleEl.className = "chart-title";
+    const titleText = document.createElement("span");
+    titleText.textContent = title;
+    const toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "chart-toggle";
+    toggleBtn.textContent = "−";
+    toggleBtn.setAttribute("aria-label", "Hide chart");
+    toggleBtn.addEventListener("click", () => {
+      const collapsed = el.classList.toggle("collapsed");
+      toggleBtn.textContent = collapsed ? "+" : "−";
+      toggleBtn.setAttribute("aria-label", collapsed ? "Show chart" : "Hide chart");
+    });
+    titleEl.appendChild(titleText);
+    titleEl.appendChild(toggleBtn);
+    el.appendChild(titleEl);
+    // The chart container has horizontal padding for the surrounding border;
+    // subtract it so the plot canvas fits inside the padded area.
+    const cs = getComputedStyle(el);
+    const padX =
+      (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
     const arr = buildData(seriesDefs);
     const opts = {
-      title,
-      width: el.clientWidth || 900,
+      width: (el.clientWidth || 900) - padX,
       height,
       cursor: {
         focus: { prox: 8 },
         sync: { key: SYNC_KEY },
+        // Runs sample at independent timestamps, so at most x positions only
+        // one run has a real value and the others are null. Snap each series
+        // to its own nearest non-null sample so the legend shows every run
+        // simultaneously instead of "value / —".
+        dataIdx: (u, seriesIdx, hoveredIdx) => {
+          if (seriesIdx === 0) return hoveredIdx;
+          const ys = u.data[seriesIdx];
+          if (ys[hoveredIdx] != null) return hoveredIdx;
+          let left = hoveredIdx - 1;
+          let right = hoveredIdx + 1;
+          while (left >= 0 || right < ys.length) {
+            if (left >= 0 && ys[left] != null) {
+              if (right < ys.length && ys[right] != null) {
+                return hoveredIdx - left <= right - hoveredIdx ? left : right;
+              }
+              return left;
+            }
+            if (right < ys.length && ys[right] != null) return right;
+            left--;
+            right++;
+          }
+          return hoveredIdx;
+        },
       },
       legend: { live: true },
       scales: { x: { time: false } },
@@ -132,12 +189,14 @@
         { values: (u, splits) => splits.map(fmt) },
       ],
       series: [
-        { value: (u, v) => fmtSeconds(v) },
+        { label: "time", value: (u, v) => fmtSeconds(v) },
         ...seriesDefs.map((d) => ({
           label: d.label,
           stroke: d.stroke,
-          dash: d.dash,
           width: 1.5,
+          // Each run only has data at its own sample timestamps; nulls at the
+          // other run's timestamps would otherwise break the line into dots.
+          spanGaps: true,
           value: (u, v) => (v == null ? "—" : fmt(v)),
         })),
       ],
@@ -145,47 +204,47 @@
     new uPlot(opts, arr, el);
   }
 
-  // CPU: user (solid) + sys (dashed) per run.
+  const CHART_HEIGHT = 300;
+
+  // CPU: user (dark) + sys (light) per run.
   plot(
     "chart-cpu",
-    "CPU % (user solid, system dashed)",
-    260,
+    "CPU %",
+    CHART_HEIGHT,
     fmtPct,
     runs.flatMap((r, i) => [
       {
         run: r,
         label: `${r.label} user`,
-        stroke: PALETTE[i % PALETTE.length],
+        stroke: colorFor(i, 0),
         fn: (s) => s.cpu_user_pct,
       },
       {
         run: r,
         label: `${r.label} sys`,
-        stroke: PALETTE[i % PALETTE.length],
-        dash: [6, 4],
+        stroke: colorFor(i, 1),
         fn: (s) => s.cpu_sys_pct,
       },
     ])
   );
 
-  // Memory: RSS (solid) overlaid with VSZ (dashed) per run.
+  // Memory: RSS (dark) + VSZ (light) per run.
   plot(
     "chart-mem",
-    "Memory (RSS solid, VSZ dashed)",
-    260,
+    "Memory",
+    CHART_HEIGHT,
     fmtBytes,
     runs.flatMap((r, i) => [
       {
         run: r,
         label: `${r.label} RSS`,
-        stroke: PALETTE[i % PALETTE.length],
+        stroke: colorFor(i, 0),
         fn: (s) => s.rss_bytes,
       },
       {
         run: r,
         label: `${r.label} VSZ`,
-        stroke: PALETTE[i % PALETTE.length],
-        dash: [6, 4],
+        stroke: colorFor(i, 1),
         fn: (s) => s.vsz_bytes,
       },
     ])
@@ -194,12 +253,12 @@
   plot(
     "chart-threads",
     "Threads",
-    160,
+    CHART_HEIGHT,
     fmtNum,
     runs.map((r, i) => ({
       run: r,
       label: r.label,
-      stroke: PALETTE[i % PALETTE.length],
+      stroke: colorFor(i, 0),
       fn: (s) => s.threads,
     }))
   );
@@ -207,33 +266,33 @@
   plot(
     "chart-fds",
     "Open file descriptors",
-    160,
+    CHART_HEIGHT,
     fmtNum,
     runs.map((r, i) => ({
       run: r,
       label: r.label,
-      stroke: PALETTE[i % PALETTE.length],
+      stroke: colorFor(i, 0),
       fn: (s) => s.open_fds,
     }))
   );
 
+  // IO: read (dark) + write (light) per run.
   plot(
     "chart-io",
-    "IO rate (read solid, write dashed)",
-    220,
+    "IO rate",
+    CHART_HEIGHT,
     fmtBytesPerSec,
     runs.flatMap((r, i) => [
       {
         run: r,
         label: `${r.label} read`,
-        stroke: PALETTE[i % PALETTE.length],
+        stroke: colorFor(i, 0),
         fn: (s) => s._io_read_rate,
       },
       {
         run: r,
         label: `${r.label} write`,
-        stroke: PALETTE[i % PALETTE.length],
-        dash: [6, 4],
+        stroke: colorFor(i, 1),
         fn: (s) => s._io_write_rate,
       },
     ])

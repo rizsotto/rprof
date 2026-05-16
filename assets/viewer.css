@@ -47,7 +47,51 @@ table#summary code {
 }
 .chart {
   margin-bottom: 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+.chart-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 4px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.chart-toggle {
+  background: none;
+  border: 1px solid #e5e5e5;
+  border-radius: 3px;
+  color: #555;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 1px 7px;
+}
+.chart-toggle:hover {
+  background: #f0f0f0;
+}
+.chart.collapsed > :not(.chart-title) {
+  display: none;
 }
 .uplot {
   font-family: inherit;
 }
+/* Stabilise the live legend so it doesn't jump as the cursor moves.
+   tabular-nums locks digit widths; min-width on each value cell reserves
+   enough room for the worst typical reading per chart so the column only
+   grows for genuine outliers. */
+.u-legend {
+  font-variant-numeric: tabular-nums;
+}
+.u-legend .u-value {
+  display: inline-block;
+  min-width: 7ch;
+  text-align: right;
+}
+#chart-mem .u-legend .u-value { min-width: 10ch; }
+#chart-io .u-legend .u-value { min-width: 11ch; }
