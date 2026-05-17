@@ -13,7 +13,7 @@
 //! `requirements/capture-streaming-write.md` and
 //! `requirements/schema-v1.md` for the contract.
 
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::{BufWriter, Write};
 use std::mem::MaybeUninit;
 use std::path::PathBuf;
@@ -41,7 +41,7 @@ pub fn run(args: RunArgs) -> Result<u8> {
     }
     #[cfg(target_os = "linux")]
     {
-        run_linux(args)
+        run_impl(args)
     }
     #[cfg(not(target_os = "linux"))]
     {
@@ -50,8 +50,7 @@ pub fn run(args: RunArgs) -> Result<u8> {
     }
 }
 
-#[cfg(target_os = "linux")]
-fn run_linux(args: RunArgs) -> Result<u8> {
+fn run_impl(args: RunArgs) -> Result<u8> {
     use crate::sampler::{ProcSampler, Sampler};
 
     let (program, child_args) = args
@@ -74,16 +73,20 @@ fn run_linux(args: RunArgs) -> Result<u8> {
                 .with_context(|| format!("creating output directory {}", parent.display()))?;
         }
     }
-    let file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(&output_path)
-        .with_context(|| format!("opening report {}", output_path.display()))?;
-    // A small write buffer per the streaming-write contract: bounded
-    // in-flight bytes, flushed each tick so an SIGKILL surrenders only the
-    // current tick's record, not arbitrary backlog.
-    let mut writer = BufWriter::with_capacity(8 * 1024, file);
+
+    let mut writer = {
+        let file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(&output_path)
+            .with_context(|| format!("opening report {}", output_path.display()))?;
+
+        // A small write buffer per the streaming-write contract: bounded
+        // in-flight bytes, flushed each tick so an SIGKILL surrenders only the
+        // current tick's record, not arbitrary backlog.
+        BufWriter::with_capacity(8 * 1024, file)
+    };
 
     let mut child = Command::new(program)
         .args(child_args)
@@ -114,13 +117,16 @@ fn run_linux(args: RunArgs) -> Result<u8> {
     };
     write_record(&mut writer, &Record::Header(header.clone()))?;
 
-    let (stop_tx, stop_rx) = channel::<()>();
+    let (footer_tx, footer_rx) = channel::<Footer>();
     let interval = args.interval;
 
-    // Move the writer into the sampler thread so each tick writes its
-    // record directly to disk. The main thread keeps a Sender to signal
-    // shutdown after `child.wait()` returns.
-    let sampler_handle: thread::JoinHandle<Result<BufWriter<File>>> = thread::spawn(move || {
+    // The sampler thread owns the writer for the entire run. The main
+    // thread sends the assembled `Footer` down `footer_tx` once
+    // `child.wait()` returns; the sampler appends it and exits. Keeping
+    // the writer on a single thread removes the ferry-back across the
+    // join boundary that the previous shape needed just to write the
+    // last record.
+    let sampler_handle: thread::JoinHandle<Result<()>> = thread::spawn(move || {
         let mut sampler: Box<dyn Sampler> = Box::new(ProcSampler::new(child_pid));
         loop {
             let t_ms = start_instant.elapsed().as_millis() as u64;
@@ -130,24 +136,30 @@ fn run_linux(args: RunArgs) -> Result<u8> {
                 .unwrap_or(0);
             match sampler.sample()? {
                 Some(raw) => write_sample(&mut writer, t_ms, wall_ms, &raw)?,
-                None => break,
+                None => {
+                    // Child vanished before main observed `wait()` returning.
+                    // Block on the channel so the footer the main thread is
+                    // about to assemble still reaches the file.
+                    if let Ok(footer) = footer_rx.recv() {
+                        write_record(&mut writer, &Record::Footer(footer))?;
+                    }
+                    return Ok(());
+                }
             }
-            match stop_rx.recv_timeout(interval) {
-                Ok(()) | Err(RecvTimeoutError::Disconnected) => break,
+            match footer_rx.recv_timeout(interval) {
+                Ok(footer) => {
+                    write_record(&mut writer, &Record::Footer(footer))?;
+                    return Ok(());
+                }
+                Err(RecvTimeoutError::Disconnected) => return Ok(()),
                 Err(RecvTimeoutError::Timeout) => {}
             }
         }
-        Ok(writer)
     });
 
     let status = child.wait().context("waiting for child to exit")?;
     let wall_duration = start_instant.elapsed();
-    let _ = stop_tx.send(());
     clear_signal_forwarder();
-
-    let mut writer = sampler_handle
-        .join()
-        .map_err(|_| anyhow::anyhow!("sampler thread panicked"))??;
 
     let (user_cpu_ms, system_cpu_ms) = read_rusage_children();
     let (exit_code, signal) = decode_status(&status);
@@ -159,7 +171,13 @@ fn run_linux(args: RunArgs) -> Result<u8> {
         user_cpu_ms,
         system_cpu_ms,
     };
-    write_record(&mut writer, &Record::Footer(footer.clone()))?;
+    // If `send` fails the sampler already exited with an error; `join`
+    // below surfaces it.
+    let _ = footer_tx.send(footer.clone());
+
+    sampler_handle
+        .join()
+        .map_err(|_| anyhow::anyhow!("sampler thread panicked"))??;
 
     eprintln!(
         "rprof: wrote {} (wall {}ms, cpu_user {}ms, cpu_sys {}ms, exit {})",
@@ -180,7 +198,7 @@ fn run_linux(args: RunArgs) -> Result<u8> {
 /// Serialise a record and append a newline. The writer is flushed so the
 /// kernel has the bytes before the next tick begins. The schema requires
 /// each record to be a single line of JSON.
-fn write_record(writer: &mut BufWriter<File>, rec: &Record) -> Result<()> {
+fn write_record(writer: &mut impl Write, rec: &Record) -> Result<()> {
     let mut buf = serde_json::to_vec(rec).context("serialising record")?;
     buf.push(b'\n');
     writer.write_all(&buf).context("writing record")?;
@@ -190,7 +208,7 @@ fn write_record(writer: &mut BufWriter<File>, rec: &Record) -> Result<()> {
 
 #[cfg(target_os = "linux")]
 fn write_sample(
-    writer: &mut BufWriter<File>,
+    writer: &mut impl Write,
     t_ms: u64,
     wall_ms: u64,
     raw: &crate::sampler::RawSample,
