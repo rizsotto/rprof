@@ -13,10 +13,10 @@
 //! `requirements/capture-streaming-write.md` and
 //! `requirements/schema-v1.md` for the contract.
 
-use std::fs::OpenOptions;
+use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Write};
 use std::mem::MaybeUninit;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::mpsc::{channel, RecvTimeoutError};
@@ -67,26 +67,7 @@ fn run_impl(args: RunArgs) -> Result<u8> {
     let clock_ticks_per_sec = clock_ticks_per_second_u64();
 
     let output_path = resolve_output_path(args.output.as_ref(), &start_wall)?;
-    if let Some(parent) = output_path.parent() {
-        if !parent.as_os_str().is_empty() {
-            std::fs::create_dir_all(parent)
-                .with_context(|| format!("creating output directory {}", parent.display()))?;
-        }
-    }
-
-    let mut writer = {
-        let file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(&output_path)
-            .with_context(|| format!("opening report {}", output_path.display()))?;
-
-        // A small write buffer per the streaming-write contract: bounded
-        // in-flight bytes, flushed each tick so an SIGKILL surrenders only the
-        // current tick's record, not arbitrary backlog.
-        BufWriter::with_capacity(8 * 1024, file)
-    };
+    let mut writer = ReportWriter::create(&output_path)?;
 
     let mut child = Command::new(program)
         .args(child_args)
@@ -115,7 +96,7 @@ fn run_impl(args: RunArgs) -> Result<u8> {
         },
         host: host_metadata(clock_ticks_per_sec),
     };
-    write_record(&mut writer, &Record::Header(header.clone()))?;
+    writer.record_header(header)?;
 
     let (footer_tx, footer_rx) = channel::<Footer>();
     let interval = args.interval;
@@ -135,20 +116,20 @@ fn run_impl(args: RunArgs) -> Result<u8> {
                 .map(|d| d.as_millis() as u64)
                 .unwrap_or(0);
             match sampler.sample()? {
-                Some(raw) => write_sample(&mut writer, t_ms, wall_ms, &raw)?,
+                Some(raw) => writer.record_sample(build_sample(t_ms, wall_ms, &raw))?,
                 None => {
                     // Child vanished before main observed `wait()` returning.
                     // Block on the channel so the footer the main thread is
                     // about to assemble still reaches the file.
                     if let Ok(footer) = footer_rx.recv() {
-                        write_record(&mut writer, &Record::Footer(footer))?;
+                        writer.record_footer(footer)?;
                     }
                     return Ok(());
                 }
             }
             match footer_rx.recv_timeout(interval) {
                 Ok(footer) => {
-                    write_record(&mut writer, &Record::Footer(footer))?;
+                    writer.record_footer(footer)?;
                     return Ok(());
                 }
                 Err(RecvTimeoutError::Disconnected) => return Ok(()),
@@ -195,25 +176,61 @@ fn run_impl(args: RunArgs) -> Result<u8> {
     Ok(exit_status_to_u8(exit_code, signal))
 }
 
-/// Serialise a record and append a newline. The writer is flushed so the
-/// kernel has the bytes before the next tick begins. The schema requires
-/// each record to be a single line of JSON.
-fn write_record(writer: &mut impl Write, rec: &Record) -> Result<()> {
-    let mut buf = serde_json::to_vec(rec).context("serialising record")?;
-    buf.push(b'\n');
-    writer.write_all(&buf).context("writing record")?;
-    writer.flush().context("flushing record")?;
-    Ok(())
+/// Streaming JSONL writer for an on-disk report. Owns the buffered
+/// file handle and flushes after every record, so the file on disk
+/// always trails the most recent sample by at most the time it takes
+/// to serialise one line — see `requirements/capture-streaming-write.md`.
+struct ReportWriter {
+    inner: BufWriter<File>,
+}
+
+impl ReportWriter {
+    /// Create or truncate the report at `path`, creating the parent
+    /// directory if necessary. The internal buffer is intentionally
+    /// small: the per-record flush surrenders only the current line on
+    /// SIGKILL, never an accumulated backlog.
+    fn create(path: &Path) -> Result<Self> {
+        if let Some(parent) = path.parent() {
+            if !parent.as_os_str().is_empty() {
+                std::fs::create_dir_all(parent)
+                    .with_context(|| format!("creating output directory {}", parent.display()))?;
+            }
+        }
+        let file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(path)
+            .with_context(|| format!("opening report {}", path.display()))?;
+        Ok(Self {
+            inner: BufWriter::with_capacity(8 * 1024, file),
+        })
+    }
+
+    fn record_header(&mut self, header: Header) -> Result<()> {
+        self.write_record(&Record::Header(header))
+    }
+
+    fn record_sample(&mut self, sample: Sample) -> Result<()> {
+        self.write_record(&Record::Sample(sample))
+    }
+
+    fn record_footer(&mut self, footer: Footer) -> Result<()> {
+        self.write_record(&Record::Footer(footer))
+    }
+
+    fn write_record(&mut self, rec: &Record) -> Result<()> {
+        let mut buf = serde_json::to_vec(rec).context("serialising record")?;
+        buf.push(b'\n');
+        self.inner.write_all(&buf).context("writing record")?;
+        self.inner.flush().context("flushing record")?;
+        Ok(())
+    }
 }
 
 #[cfg(target_os = "linux")]
-fn write_sample(
-    writer: &mut impl Write,
-    t_ms: u64,
-    wall_ms: u64,
-    raw: &crate::sampler::RawSample,
-) -> Result<()> {
-    let sample = Sample {
+fn build_sample(t_ms: u64, wall_ms: u64, raw: &crate::sampler::RawSample) -> Sample {
+    Sample {
         t_ms,
         wall_ms,
         utime_ticks: raw.utime_ticks,
@@ -224,8 +241,7 @@ fn write_sample(
         open_fds: raw.open_fds,
         io_read_bytes: raw.io_read_bytes,
         io_write_bytes: raw.io_write_bytes,
-    };
-    write_record(writer, &Record::Sample(sample))
+    }
 }
 
 fn clock_ticks_per_second_u64() -> u64 {
