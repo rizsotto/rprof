@@ -35,7 +35,7 @@ fn capture_report(dir: &std::path::Path, name: &str, sleep_seconds: &str) -> Pat
 #[test]
 fn view_no_open_writes_html_to_stdout() {
     let tmp = tempfile::tempdir().unwrap();
-    let report = capture_report(tmp.path(), "r.json", "0.2");
+    let report = capture_report(tmp.path(), "r.jsonl", "0.2");
     let out = Command::new(rprof_bin())
         .args(["view", "--no-open"])
         .arg(&report)
@@ -57,7 +57,7 @@ fn view_no_open_writes_html_to_stdout() {
 #[test]
 fn view_no_open_with_output_writes_file() {
     let tmp = tempfile::tempdir().unwrap();
-    let report = capture_report(tmp.path(), "r.json", "0.2");
+    let report = capture_report(tmp.path(), "r.jsonl", "0.2");
     let html_path = tmp.path().join("report.html");
     let out = Command::new(rprof_bin())
         .args(["view", "--no-open", "-o"])
@@ -83,8 +83,8 @@ fn view_no_open_with_output_writes_file() {
 #[test]
 fn view_overlays_two_reports_with_labels() {
     let tmp = tempfile::tempdir().unwrap();
-    let a = capture_report(tmp.path(), "before.json", "0.15");
-    let b = capture_report(tmp.path(), "after.json", "0.25");
+    let a = capture_report(tmp.path(), "before.jsonl", "0.15");
+    let b = capture_report(tmp.path(), "after.jsonl", "0.25");
     let html_path = tmp.path().join("compare.html");
     let out = Command::new(rprof_bin())
         .args(["view", "--no-open", "-o"])
@@ -110,7 +110,7 @@ fn view_overlays_two_reports_with_labels() {
 #[test]
 fn view_uses_filename_as_default_label() {
     let tmp = tempfile::tempdir().unwrap();
-    let r = capture_report(tmp.path(), "my-build.json", "0.1");
+    let r = capture_report(tmp.path(), "my-build.jsonl", "0.1");
     let html_path = tmp.path().join("out.html");
     let out = Command::new(rprof_bin())
         .args(["view", "--no-open", "-o"])
@@ -139,17 +139,10 @@ fn view_rejects_no_inputs() {
 #[test]
 fn view_rejects_unknown_schema_version() {
     let tmp = tempfile::tempdir().unwrap();
-    let bad = tmp.path().join("bad.json");
+    let bad = tmp.path().join("bad.jsonl");
     std::fs::write(
         &bad,
-        r#"{
-            "schema_version": 999,
-            "tool": {"name":"rprof","version":"x"},
-            "run":{"command":["x"],"cwd":"/","env_fingerprint":"00","start_time":"2026-01-01T00:00:00Z","wall_duration_ms":0,"exit_code":0,"signal":null,"backend":"proc","sample_interval_ms":100},
-            "host":{"hostname":"h","kernel":"x","cpu_count":1,"total_memory_bytes":0},
-            "summary":{"peak_rss_bytes":0,"user_cpu_ms":0,"system_cpu_ms":0,"sample_count":0},
-            "samples":[]
-        }"#,
+        "{\"type\":\"header\",\"schema\":999,\"tool\":{\"name\":\"rprof\",\"version\":\"x\"},\"run\":{\"command\":[\"x\"],\"cwd\":\"/\",\"env_fingerprint\":\"00\",\"start_time\":\"2026-01-01T00:00:00Z\",\"backend\":\"proc\",\"sample_interval_ms\":100},\"host\":{\"hostname\":\"h\",\"kernel\":\"x\",\"cpu_count\":1,\"total_memory_bytes\":0,\"clock_ticks_per_sec\":100}}\n",
     )
     .unwrap();
     let out = Command::new(rprof_bin())
@@ -163,7 +156,134 @@ fn view_rejects_unknown_schema_version() {
     );
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(
-        stderr.contains("schema_version"),
-        "error should mention schema version, got: {stderr}"
+        stderr.contains("schema"),
+        "error should mention schema, got: {stderr}"
+    );
+    let bad_str = bad.display().to_string();
+    assert!(
+        stderr.contains(&bad_str),
+        "error should mention the file path, got: {stderr}"
+    );
+}
+
+// Requirements: schema-v1, capture-streaming-write
+#[test]
+fn view_renders_partial_file_without_footer() {
+    // A file with header + samples but no footer (the SIGKILL case) must
+    // still render. The viewer treats the run's end state as "unknown".
+    use rprof::schema::{Header, Host, Record, Run, Sample, Tool, SCHEMA_VERSION};
+
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("partial.jsonl");
+    let header = Record::Header(Header {
+        schema: SCHEMA_VERSION,
+        tool: Tool::current(),
+        run: Run {
+            command: vec!["sleep".into(), "5".into()],
+            cwd: "/tmp".into(),
+            env_fingerprint: "0".repeat(64),
+            start_time: "2026-05-14T10:30:00Z".into(),
+            backend: "proc".into(),
+            sample_interval_ms: 100,
+        },
+        host: Host {
+            hostname: "h".into(),
+            kernel: "Linux".into(),
+            cpu_count: 1,
+            total_memory_bytes: 0,
+            clock_ticks_per_sec: 100,
+        },
+    });
+    let sample = Record::Sample(Sample {
+        t_ms: 0,
+        wall_ms: 0,
+        utime_ticks: 0,
+        stime_ticks: 0,
+        rss_bytes: 1024,
+        vsz_bytes: 2048,
+        threads: 1,
+        open_fds: 3,
+        io_read_bytes: 0,
+        io_write_bytes: 0,
+    });
+    let mut text = serde_json::to_string(&header).unwrap();
+    text.push('\n');
+    text.push_str(&serde_json::to_string(&sample).unwrap());
+    text.push('\n');
+    std::fs::write(&path, &text).unwrap();
+
+    let out = Command::new(rprof_bin())
+        .args(["view", "--no-open"])
+        .arg(&path)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "partial file must render; stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let html = String::from_utf8(out.stdout).unwrap();
+    assert!(html.contains("uPlot"));
+    assert!(html.contains("id=\"rprof-data\""));
+}
+
+// Requirements: schema-v1
+#[test]
+fn view_tolerates_truncated_trailing_line() {
+    // Mid-record truncation must render whatever well-formed lines
+    // preceded it. The viewer treats the corrupt tail as "unknown end".
+    use rprof::schema::{Header, Host, Record, Run, Sample, Tool, SCHEMA_VERSION};
+
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("torn.jsonl");
+    let header = Record::Header(Header {
+        schema: SCHEMA_VERSION,
+        tool: Tool::current(),
+        run: Run {
+            command: vec!["echo".into()],
+            cwd: "/tmp".into(),
+            env_fingerprint: "0".repeat(64),
+            start_time: "2026-05-14T10:30:00Z".into(),
+            backend: "proc".into(),
+            sample_interval_ms: 100,
+        },
+        host: Host {
+            hostname: "h".into(),
+            kernel: "Linux".into(),
+            cpu_count: 1,
+            total_memory_bytes: 0,
+            clock_ticks_per_sec: 100,
+        },
+    });
+    let sample = Record::Sample(Sample {
+        t_ms: 0,
+        wall_ms: 0,
+        utime_ticks: 0,
+        stime_ticks: 0,
+        rss_bytes: 1024,
+        vsz_bytes: 2048,
+        threads: 1,
+        open_fds: 3,
+        io_read_bytes: 0,
+        io_write_bytes: 0,
+    });
+    let mut text = serde_json::to_string(&header).unwrap();
+    text.push('\n');
+    text.push_str(&serde_json::to_string(&sample).unwrap());
+    text.push('\n');
+    // Append a truncated sample line: open brace, no closing brace, no
+    // trailing newline.
+    text.push_str("{\"type\":\"sample\",\"t_ms\":100");
+    std::fs::write(&path, &text).unwrap();
+
+    let out = Command::new(rprof_bin())
+        .args(["view", "--no-open"])
+        .arg(&path)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "truncated file must render; stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
     );
 }

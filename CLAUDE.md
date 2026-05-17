@@ -46,8 +46,8 @@ viewer HTML is self-contained (uPlot bundled at compile time via
 
 | Subcommand | Purpose |
 |---|---|
-| `rprof run -- <cmd>` | Spawn `<cmd>`, poll `/proc/<pid>` on a background thread, write a versioned JSON report on exit. |
-| `rprof view <r.json> [<r.json> ...]` | Render one or more reports as a self-contained HTML file with interactive uPlot charts. |
+| `rprof run -- <cmd>` | Spawn `<cmd>`, poll `/proc/<pid>` on a background thread, stream a versioned JSONL report to disk as samples are taken. |
+| `rprof view <r.jsonl> [<r.jsonl> ...]` | Render one or more reports as a self-contained HTML file with interactive uPlot charts. |
 
 ### Project goals
 
@@ -55,8 +55,10 @@ viewer HTML is self-contained (uPlot bundled at compile time via
   container or CI image and it works.
 - Capture is non-invasive: no instrumentation, no `LD_PRELOAD`, no
   `ptrace`. The target program is unaware it is being measured.
-- Output is plain JSON with a versioned schema. Trivially scriptable,
-  diffable, archivable.
+- Output is plain JSON Lines with a versioned schema. Trivially
+  scriptable, diffable, archivable; `tail -f` works while a capture
+  is in progress and `kill -9` leaves a partial-but-usable file
+  rather than nothing.
 - Visualisation is a self-contained HTML file. No long-running server, no
   port conflicts, no Python or Node required to view a report.
 - Diffing multiple runs is a first-class feature, not an afterthought.
@@ -115,23 +117,32 @@ vendored uPlot files in place") that prevent regressions.
 rprof run -- cmd
    |
    v
+open report file                                  (.rprof/<ts>.jsonl by default)
+   |
+   v
 spawn child (stdio inherited)  ──>  signal forwarder (SIGINT/SIGTERM/SIGHUP)
    |
    v
-sampler thread polls /proc/<pid>  every --interval ms
+write `header` record
    |
+   v
+sampler thread polls /proc/<pid> every --interval ms
+   |   each tick: append a `sample` record, flush
    v
 child exits  ──>  wait(), getrusage(RUSAGE_CHILDREN)
    |
    v
-build Report, serialize JSON, write to --output (or .rprof/<ts>.json)
+append `footer` record, flush, close
 ```
 
 ```
-rprof view r1.json r2.json ...
+rprof view r1.jsonl r2.jsonl ...
    |
    v
-parse + version-check reports
+parse line-by-line; verify header.schema; tolerate unknown / truncated rows
+   |
+   v
+derive per-sample CPU% and peak RSS in-memory
    |
    v
 inline data + uPlot JS/CSS + viewer JS/CSS into single HTML

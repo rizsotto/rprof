@@ -37,7 +37,7 @@ All under `dogfood/` at the project root (gitignored):
 - `workload-release/`, `workload-debug/` — staged source copies used as the
   capture target. Wiped and re-staged on every `capture` so the build is
   always cold.
-- `release.json`, `debug.json` — captured profiles.
+- `release.jsonl`, `debug.jsonl` — captured profiles.
 - `report.html` — the rendered, self-contained viewer page.
 
 ## Rules

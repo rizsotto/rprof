@@ -6,14 +6,14 @@ status: implemented
 ## Intent
 
 Comparing two runs (before/after, slow/fast, debug/release) is the most
-common reason a user reaches for a profiler. `rprof view a.json b.json`
+common reason a user reaches for a profiler. `rprof view a.jsonl b.jsonl`
 must overlay both runs on every chart with distinct colours and a working
 legend, so the user can read the difference visually instead of squinting
 at two browser tabs.
 
 ## Acceptance criteria
 
-- `rprof view r1.json r2.json [r3.json ...]` accepts any number of
+- `rprof view r1.jsonl r2.jsonl [r3.jsonl ...]` accepts any number of
   reports (subject to `argv` length).
 - Each run is plotted as its own series in every chart, with a stable
   per-run colour from a fixed palette.
@@ -27,10 +27,10 @@ at two browser tabs.
 - When `--label LABEL:PATH` names a path that is not also a positional
   argument, the path *is* loaded — `--label` alone is sufficient to
   specify a report. This makes
-  `rprof view --label before:a.json --label after:b.json` a valid
+  `rprof view --label before:a.jsonl --label after:b.jsonl` a valid
   invocation.
 - When no `--label` is given for a positional, the file's stem (the
-  filename without the `.json` extension) is the default label.
+  filename without the extension) is the default label.
 
 ### Colour palette
 
@@ -91,21 +91,21 @@ at two browser tabs.
 
 Given two captured reports:
 
-> When `rprof view --no-open -o out.html a.json b.json` runs,
+> When `rprof view --no-open -o out.html a.jsonl b.jsonl` runs,
 > then `out.html` contains both runs' inlined data,
 > and the page title contains "2 runs".
 
 Given two reports with `--label`:
 
 > When the user runs
-> `rprof view --no-open -o out.html --label before:a.json --label after:b.json`,
+> `rprof view --no-open -o out.html --label before:a.jsonl --label after:b.jsonl`,
 > then the inlined payload contains `"label":"before"` and
 > `"label":"after"`,
 > and the summary table renders with those labels.
 
 Given a single positional report with no `--label`:
 
-> When the user runs `rprof view --no-open -o out.html my-build.json`,
+> When the user runs `rprof view --no-open -o out.html my-build.jsonl`,
 > then the inlined payload contains `"label":"my-build"` (the file
 > stem).
 

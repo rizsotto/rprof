@@ -59,8 +59,8 @@ Given a command that exits successfully:
 
 > When the user runs `rprof run -- sleep 0.3`,
 > then `rprof` exits with status 0
-> and a JSON report is written to the path given by `-o` (or to
-> `./.rprof/<timestamp>.json` if `-o` is omitted).
+> and a JSONL report is written to the path given by `-o` (or to
+> `./.rprof/<timestamp>.jsonl` if `-o` is omitted).
 
 Given a command line with no program after `--`:
 

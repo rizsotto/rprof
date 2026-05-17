@@ -13,7 +13,7 @@ request, or open by double-clicking.
 
 ## Acceptance criteria
 
-- `rprof view <report.json>` produces a single HTML file with no
+- `rprof view <report.jsonl>` produces a single HTML file with no
   external references (no `<link rel="stylesheet" href="...">`, no
   `<script src="...">`, no fetch calls to a server).
 - The HTML contains the report JSON inlined inside a
@@ -28,7 +28,7 @@ request, or open by double-clicking.
   this and writes to either `-o <path>` or stdout.
 - With `--no-open -o <path>`, nothing is printed on stdout.
 - With `--no-open` and no `-o`, the HTML goes to stdout. This is the
-  shape needed for `rprof view --no-open r.json > out.html` and for
+  shape needed for `rprof view --no-open r.jsonl > out.html` and for
   piping into a clipboard tool.
 
 ## Non-functional constraints
@@ -70,7 +70,7 @@ request, or open by double-clicking.
 
 Given a captured report:
 
-> When `rprof view --no-open r.json` runs,
+> When `rprof view --no-open r.jsonl` runs,
 > then `rprof` exits with status 0,
 > and its stdout starts with `<!doctype html>`,
 > and the output contains the string `uPlot` (the bundled library),
@@ -78,7 +78,7 @@ Given a captured report:
 
 Given the same report and an explicit output path:
 
-> When `rprof view --no-open -o out.html r.json` runs,
+> When `rprof view --no-open -o out.html r.jsonl` runs,
 > then `out.html` is written,
 > and `rprof`'s stdout is empty.
 

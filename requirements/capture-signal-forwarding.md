@@ -6,22 +6,27 @@ status: implemented
 ## Intent
 
 When a user presses Ctrl-C, or a CI runner sends SIGTERM, the signal must
-reach the child being profiled — not be swallowed by `rprof`. And the JSON
-report must still land on disk before `rprof` exits, because in CI the most
-valuable runs are precisely the ones that died early and need post-mortem
-analysis. Dropping the report on Ctrl-C would be a real foot-gun.
+reach the child being profiled — not be swallowed by `rprof`. And the
+report must still land on disk before `rprof` exits, because in CI the
+most valuable runs are precisely the ones that died early and need
+post-mortem analysis. Dropping the report on Ctrl-C would be a real
+foot-gun.
 
 ## Acceptance criteria
 
 - SIGINT, SIGTERM, and SIGHUP delivered to `rprof` are forwarded to the
   child process.
 - After the child terminates (whether by signal or normal exit), `rprof`
-  writes the JSON report to the configured output path before exiting.
-- The report records the cause of termination: `exit_code` is set when the
-  child returned a code, or `signal` is set when the child was killed by a
-  signal. They are mutually exclusive in practice (the kernel reports one
-  or the other), but `null` is allowed for both during early failures
-  before the child started.
+  writes a `footer` record to the report and flushes the file before
+  exiting. The header and the sample stream are already on disk by the
+  time the signal arrives (see
+  [`capture-streaming-write`](capture-streaming-write.md)), so the
+  resulting file is a complete report.
+- The footer records the cause of termination: `exit_code` is set when
+  the child returned a code, or `signal` is set when the child was
+  killed by a signal. They are mutually exclusive in practice (the
+  kernel reports one or the other), but `null` is allowed for both
+  during early failures before the child started.
 - The latency between the signal arriving and `rprof` exiting is bounded
   by the sample interval (default 100 ms).
 - The exit-code mirroring contract itself is owned by
@@ -63,21 +68,21 @@ Given a long-running child under `rprof`:
 > When the test sends SIGINT to `rprof` while the child is alive,
 > then both `rprof` and the child terminate within a few hundred
 > milliseconds,
-> and the JSON report exists on disk,
-> and the report's `signal` or `exit_code` field reflects how the child
-> died.
+> and the report exists on disk with a footer record,
+> and the footer's `signal` or `exit_code` field reflects how the
+> child died.
 
 Given a child that exits normally:
 
 > When the user runs `rprof run -- true`,
 > then `rprof` exits with status 0,
-> and the report records `exit_code = 0` and `signal = null`.
+> and the report's footer has `exit_code = 0` and `signal = null`.
 
 Given a child that exits non-zero:
 
 > When the user runs `rprof run -- sh -c "exit 42"`,
 > then `rprof` exits with status 42,
-> and the report records `exit_code = 42`.
+> and the report's footer has `exit_code = 42`.
 
 ## Notes
 

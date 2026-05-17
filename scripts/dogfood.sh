@@ -21,8 +21,8 @@ cmd="${1:-all}"
 project_root=$(cd "$(dirname "$0")/.." && pwd)
 dogfood="$project_root/dogfood"
 bin="$dogfood/bin/rprof"
-release_json="$dogfood/release.json"
-debug_json="$dogfood/debug.json"
+release_json="$dogfood/release.jsonl"
+debug_json="$dogfood/debug.jsonl"
 report_html="$dogfood/report.html"
 
 log() { printf '\n>>> %s\n' "$*"; }

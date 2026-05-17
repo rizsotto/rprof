@@ -13,11 +13,15 @@ and regression detection.
 ## Acceptance criteria
 
 - For a workload that allocates a known buffer of size `B` bytes and
-  holds it alive for at least one sample interval, the reported
-  `summary.peak_rss_bytes` lies within ±5 % of `B`, plus a small
-  additive allowance for the workload's own runtime footprint.
-- The reported peak is the maximum across all collected per-sample
-  `rss_bytes`, not a rolling average.
+  holds it alive for at least one sample interval, the peak RSS the
+  viewer derives from the captured `sample.rss_bytes` lies within
+  ±5 % of `B`, plus a small additive allowance for the workload's
+  own runtime footprint.
+- The peak is the maximum across all collected per-sample
+  `rss_bytes`, not a rolling average. It is **not** persisted as a
+  separate aggregate field; the on-disk schema is per-sample only and
+  the viewer recomputes the maximum on load (see
+  [`schema-v1`](schema-v1.md)).
 - `rss_bytes` is in bytes (not pages, not KiB), computed as
   `/proc/<pid>/stat` field 24 (rss in pages) multiplied by
   `sysconf(_SC_PAGESIZE)`.
@@ -37,8 +41,9 @@ and regression detection.
 - `ProcSampler::sample()` multiplies by the page size obtained from
   `sysconf(_SC_PAGESIZE)` at sampler construction time, defaulting to
   4096 if the syscall returns a non-positive value.
-- The runner takes `max(samples.rss_bytes)` at finalisation time and
-  stores it in `summary.peak_rss_bytes`.
+- The viewer (`build_view_report` in `src/viewer.rs`) takes
+  `max(samples.rss_bytes)` on load; nothing on the capture path
+  retains the value.
 
 ## Known limitations
 
@@ -55,8 +60,9 @@ and regression detection.
 Given a workload that allocates 64 MiB of dirtied heap and sleeps:
 
 > When `rprof run -- rprof __alloc-fixture 64 0.6` runs,
-> then `summary.peak_rss_bytes` is between 95 % of 64 MiB and 105 % of
-> 64 MiB plus a 16 MiB allowance for rprof's own footprint.
+> then the maximum `sample.rss_bytes` value across the report's
+> samples is between 95 % of 64 MiB and 105 % of 64 MiB plus a
+> 16 MiB allowance for rprof's own footprint.
 
 > When the same fixture is invoked with `vec![0u8; n]` only (no page
 > dirtying), the peak RSS is *not* 64 MiB — Linux maps zeroed

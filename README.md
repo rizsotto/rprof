@@ -1,11 +1,16 @@
 # rprof — Process Resource Profiler
 
-`rprof` captures CPU and memory usage of a child process over time, writes the
-time series to JSON, and renders interactive charts in a browser.
+`rprof` captures CPU and memory usage of a child process over time, streams
+the time series to disk as JSON Lines, and renders interactive charts in a
+browser.
 
 The tool is split into two subcommands so capture can run anywhere — in CI, on
 a remote server, inside a container — while visualization stays local to
 wherever a browser is available.
+
+Records are written as the run progresses, so a SIGKILL or host power loss
+leaves a partial-but-usable file rather than nothing; `tail -f` works on a
+capture in progress.
 
 ## Install
 
@@ -19,8 +24,8 @@ dependencies. Drop it into a container image or CI step and it works.
 ## Capture
 
 ```
-rprof run -o build-report.json -- cargo build --release
-rprof run --interval 50ms -o slow.json -- ./slow-script.sh
+rprof run -o build-report.jsonl -- cargo build --release
+rprof run --interval 50ms -o slow.jsonl -- ./slow-script.sh
 ```
 
 `rprof` measures the single child process you give it. Aggregating across
@@ -32,9 +37,9 @@ The `--` separator is mandatory: everything after it is forwarded verbatim to
 the child. The child inherits stdin/stdout/stderr and `rprof` mirrors its exit
 code, so `rprof run` is drop-in compatible with shell pipelines. SIGINT,
 SIGTERM and SIGHUP delivered to `rprof` are forwarded to the child, and the
-JSON report is always written — Ctrl-C in CI never drops the data.
+report is always written — Ctrl-C in CI never drops the data.
 
-Without `-o`, the report lands under `./.rprof/<timestamp>.json`.
+Without `-o`, the report lands under `./.rprof/<timestamp>.jsonl`.
 
 ### Metrics captured per sample
 
@@ -44,17 +49,21 @@ Without `-o`, the report lands under `./.rprof/<timestamp>.json`.
 - Open file descriptors
 - IO bytes read and written (from `/proc/<pid>/io`)
 
-The summary header also records peak RSS, total user/system CPU time (from
-`getrusage(RUSAGE_CHILDREN)`), exit code or signal, command line, environment
-fingerprint, host metadata, and the sample backend used.
+The report's `header` row records command line, environment fingerprint,
+host metadata (including `clock_ticks_per_sec` so readers can convert CPU
+ticks to seconds), and the sample backend used. The `footer` row, written
+once the child has exited, records wall duration, total user/system CPU
+time (from `getrusage(RUSAGE_CHILDREN)`), and the exit code or signal.
+Peak RSS and per-sample CPU% are derived by the viewer at load time from
+the per-sample rows.
 
 ## View
 
 ```
-rprof view build-report.json
-rprof view run-a.json run-b.json
-rprof view --label before:before.json --label after:after.json
-rprof view --no-open -o report.html run.json
+rprof view build-report.jsonl
+rprof view run-a.jsonl run-b.jsonl
+rprof view --label before:before.jsonl --label after:after.jsonl
+rprof view --no-open -o report.html run.jsonl
 ```
 
 The viewer writes a self-contained HTML file (uPlot bundle, CSS, and report

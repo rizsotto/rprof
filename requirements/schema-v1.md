@@ -1,6 +1,6 @@
 ---
 title: JSONL report schema
-status: proposed
+status: implemented
 ---
 
 ## Intent
@@ -81,7 +81,7 @@ any samples. Fields that are only known after the child exits
 |----------------------|-----------------------|-------|
 | `command`            | array of strings      | Program plus arguments, as forwarded after `--`. Non-empty. |
 | `cwd`                | string                | Working directory at capture time. |
-| `env_fingerprint`    | string                | SHA-256 hex digest of the sorted `KEY=VALUE\n`-joined environment. 64 lowercase hex chars. The full environment is **not** stored, so the report cannot leak secrets. |
+| `env_fingerprint`    | string                | SHA-256 hex digest of the environment: format each variable as `KEY=VALUE`, sort the entries, join them with `\n` as a separator (no trailing `\n`), then hash the UTF-8 bytes. 64 lowercase hex chars. The full environment is **not** stored, so the report cannot leak secrets. |
 | `start_time`         | string                | RFC 3339 / ISO 8601 with millisecond precision in UTC (e.g. `"2026-05-14T10:30:00.000Z"`). |
 | `backend`            | string                | Identifier of the sampling backend (e.g. `"proc"` for Linux `/proc` polling). |
 | `sample_interval_ms` | non-negative integer  | The requested poll interval, in milliseconds. |

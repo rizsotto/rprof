@@ -1,6 +1,6 @@
 ---
 title: Streaming sample writes (no in-memory buffer)
-status: proposed
+status: implemented
 ---
 
 ## Intent
