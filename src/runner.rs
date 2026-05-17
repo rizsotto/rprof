@@ -58,15 +58,8 @@ fn run_impl(args: RunArgs) -> Result<u8> {
         .split_first()
         .expect("non-empty command checked above");
 
-    let cwd = std::env::current_dir()
-        .map(|p| p.display().to_string())
-        .unwrap_or_default();
-    let env_fp = env_fingerprint();
-    let start_wall = chrono::Utc::now();
-    let start_instant = Instant::now();
-    let clock_ticks_per_sec = clock_ticks_per_second_u64();
-
-    let output_path = resolve_output_path(args.output.as_ref(), &start_wall)?;
+    let timing = RunTiming::now();
+    let output_path = resolve_output_path(args.output.as_ref(), &timing.start_wall)?;
     let mut writer = ReportWriter::create(&output_path)?;
 
     let mut child = Command::new(program)
@@ -83,20 +76,7 @@ fn run_impl(args: RunArgs) -> Result<u8> {
     // Header is emitted before the first sample (the streaming-write
     // contract). A reader that opens the file at this instant sees a
     // header and zero samples — that is a valid partial report.
-    let header = Header {
-        schema: SCHEMA_VERSION,
-        tool: Tool::current(),
-        run: Run {
-            command: args.command.clone(),
-            cwd,
-            env_fingerprint: env_fp,
-            start_time: start_wall.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
-            backend: "proc".to_string(),
-            sample_interval_ms: args.interval.as_millis() as u64,
-        },
-        host: host_metadata(clock_ticks_per_sec),
-    };
-    writer.record_header(header)?;
+    writer.record_header(build_header(&args, &timing))?;
 
     let (footer_tx, footer_rx) = channel::<Footer>();
     let interval = args.interval;
@@ -110,7 +90,7 @@ fn run_impl(args: RunArgs) -> Result<u8> {
     let sampler_handle: thread::JoinHandle<Result<()>> = thread::spawn(move || {
         let mut sampler: Box<dyn Sampler> = Box::new(ProcSampler::new(child_pid));
         loop {
-            let t_ms = start_instant.elapsed().as_millis() as u64;
+            let t_ms = timing.start_instant.elapsed().as_millis() as u64;
             let wall_ms = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .map(|d| d.as_millis() as u64)
@@ -139,19 +119,9 @@ fn run_impl(args: RunArgs) -> Result<u8> {
     });
 
     let status = child.wait().context("waiting for child to exit")?;
-    let wall_duration = start_instant.elapsed();
     clear_signal_forwarder();
 
-    let (user_cpu_ms, system_cpu_ms) = read_rusage_children();
-    let (exit_code, signal) = decode_status(&status);
-
-    let footer = Footer {
-        wall_duration_ms: wall_duration.as_millis() as u64,
-        exit_code,
-        signal,
-        user_cpu_ms,
-        system_cpu_ms,
-    };
+    let footer = build_footer(&status, &timing);
     // If `send` fails the sampler already exited with an error; `join`
     // below surfaces it.
     let _ = footer_tx.send(footer.clone());
@@ -166,14 +136,74 @@ fn run_impl(args: RunArgs) -> Result<u8> {
         footer.wall_duration_ms,
         footer.user_cpu_ms,
         footer.system_cpu_ms,
-        match (exit_code, signal) {
+        match (footer.exit_code, footer.signal) {
             (Some(c), _) => format!("{c}"),
             (None, Some(s)) => format!("signal {s}"),
             _ => "unknown".to_string(),
         },
     );
 
-    Ok(exit_status_to_u8(exit_code, signal))
+    Ok(exit_status_to_u8(footer.exit_code, footer.signal))
+}
+
+/// The two clocks the runner keeps in sync: the wall clock (used for
+/// the header's `start_time` and the output-file name) and the
+/// monotonic clock (used for per-sample `t_ms` and the footer's
+/// `wall_duration_ms`). One value travels through the run instead of
+/// loose locals on each thread.
+#[derive(Clone, Copy)]
+struct RunTiming {
+    start_wall: chrono::DateTime<chrono::Utc>,
+    start_instant: Instant,
+}
+
+impl RunTiming {
+    fn now() -> Self {
+        Self {
+            start_wall: chrono::Utc::now(),
+            start_instant: Instant::now(),
+        }
+    }
+
+    fn start_time_rfc3339(&self) -> String {
+        self.start_wall
+            .to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+    }
+
+    fn elapsed_ms(&self) -> u64 {
+        self.start_instant.elapsed().as_millis() as u64
+    }
+}
+
+fn build_header(args: &RunArgs, timing: &RunTiming) -> Header {
+    let cwd = std::env::current_dir()
+        .map(|p| p.display().to_string())
+        .unwrap_or_default();
+    Header {
+        schema: SCHEMA_VERSION,
+        tool: Tool::current(),
+        run: Run {
+            command: args.command.clone(),
+            cwd,
+            env_fingerprint: env_fingerprint(),
+            start_time: timing.start_time_rfc3339(),
+            backend: "proc".to_string(),
+            sample_interval_ms: args.interval.as_millis() as u64,
+        },
+        host: host_metadata(clock_ticks_per_second_u64()),
+    }
+}
+
+fn build_footer(status: &ExitStatus, timing: &RunTiming) -> Footer {
+    let (user_cpu_ms, system_cpu_ms) = read_rusage_children();
+    let (exit_code, signal) = decode_status(status);
+    Footer {
+        wall_duration_ms: timing.elapsed_ms(),
+        exit_code,
+        signal,
+        user_cpu_ms,
+        system_cpu_ms,
+    }
 }
 
 /// Streaming JSONL writer for an on-disk report. Owns the buffered
