@@ -8,7 +8,8 @@
 //! or truncated final lines, and refuses files whose `header.schema`
 //! does not match `SCHEMA_VERSION`.
 
-use std::io::Write;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
@@ -104,9 +105,7 @@ fn filename_label(p: &Path) -> String {
 fn load_reports(entries: &[(String, PathBuf)]) -> Result<Vec<Loaded>> {
     let mut out = Vec::with_capacity(entries.len());
     for (label, path) in entries {
-        let text =
-            std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
-        let report = parse_jsonl(&text, path)?;
+        let report = parse_jsonl(ReportReader::open(path)?, path)?;
         out.push(Loaded {
             label: label.clone(),
             report,
@@ -115,51 +114,97 @@ fn load_reports(entries: &[(String, PathBuf)]) -> Result<Vec<Loaded>> {
     Ok(out)
 }
 
-/// Parse a JSONL report. The contract:
+/// Streaming reader of records from an on-disk report. Reads one
+/// line at a time so a large report is never held in memory whole,
+/// and applies the schema-v1 tolerance contract:
 ///
-/// - First well-formed record must be a `header` whose `schema` matches
-///   [`crate::schema::SCHEMA_VERSION`]. If not, the call fails with an
-///   error mentioning the file path and `schema`.
-/// - Subsequent `sample` records are collected in encounter order.
-/// - At most one `footer` is recognised; once seen, further records are
-///   not consulted.
 /// - Lines whose `type` is unknown are silently skipped.
-/// - A truncated or otherwise unparseable trailing line is tolerated and
-///   simply means the run was interrupted before the line was finished.
-///   Earlier malformed lines also turn into a skip rather than an error —
-///   the streaming-write contract is "best effort to disk", so any
-///   half-line on the way is treated as a survivor of a kill.
-pub fn parse_jsonl(text: &str, path: &Path) -> Result<LoadedReport> {
+/// - A trailing line without a terminating newline that fails to
+///   parse is treated as end of stream. The streaming-write contract
+///   guarantees a partial line only ever appears at the tail.
+/// - I/O errors surface as `Err` items.
+struct ReportReader<R: BufRead> {
+    reader: R,
+}
+
+impl<R: BufRead> ReportReader<R> {
+    /// Wrap an arbitrary buffered reader. The in-memory shape used by
+    /// the tolerance-contract unit tests.
+    fn new(reader: R) -> Self {
+        Self { reader }
+    }
+}
+
+impl ReportReader<BufReader<File>> {
+    /// Open a report file on disk, mirroring `ReportWriter::create`
+    /// on the write side. Buffering is internal.
+    fn open(path: &Path) -> Result<Self> {
+        let file = File::open(path).with_context(|| format!("opening {}", path.display()))?;
+        Ok(Self::new(BufReader::new(file)))
+    }
+}
+
+impl<R: BufRead> Iterator for ReportReader<R> {
+    type Item = Result<Record>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut line = String::new();
+        loop {
+            line.clear();
+            let n = match self.reader.read_line(&mut line) {
+                Ok(n) => n,
+                Err(e) => {
+                    return Some(Err(anyhow::Error::from(e).context("reading record line")));
+                }
+            };
+            if n == 0 {
+                return None;
+            }
+            let complete = line.ends_with('\n');
+            let trimmed = line.trim_matches(|c: char| c == '\n' || c == '\r');
+            if trimmed.is_empty() {
+                continue;
+            }
+            match serde_json::from_str::<Record>(trimmed) {
+                Ok(rec) => return Some(Ok(rec)),
+                Err(_) => {
+                    // Unknown record kinds and a corrupt / truncated
+                    // tail line both land here. A line that did not end
+                    // with a newline can only be the file's last line,
+                    // so treat it as end of stream; otherwise it is a
+                    // future record type the schema lets us skip.
+                    if !complete {
+                        return None;
+                    }
+                    continue;
+                }
+            }
+        }
+    }
+}
+
+/// Fold a stream of records into a [`LoadedReport`]. `path` is used
+/// only to shape error messages.
+///
+/// - First well-formed record must be a `header` whose `schema`
+///   matches [`crate::schema::SCHEMA_VERSION`]; otherwise the call
+///   fails with an error mentioning the path and the schema value.
+/// - Subsequent `sample` records are collected in encounter order.
+/// - At most one `footer` is recognised; later footers are ignored.
+/// - Tolerance of unknown record types and truncated trailing lines
+///   is enforced by [`ReportReader`].
+fn parse_jsonl<R: BufRead>(reader: ReportReader<R>, path: &Path) -> Result<LoadedReport> {
     let mut header: Option<Header> = None;
     let mut samples: Vec<Sample> = Vec::new();
     let mut footer: Option<Footer> = None;
 
-    for line in text.split_inclusive('\n') {
-        // A trailing partial line (no terminating \n) is the streaming
-        // contract's truncation case — skip without erroring.
-        let complete = line.ends_with('\n');
-        let trimmed = line.trim_matches(|c: char| c == '\n' || c == '\r');
-        if trimmed.is_empty() {
-            continue;
-        }
-        let rec = match serde_json::from_str::<Record>(trimmed) {
-            Ok(r) => r,
-            Err(_) => {
-                // Unknown record types and partial / corrupt lines are
-                // both invisible to the reader. We do not distinguish:
-                // the schema mandates tolerance in both directions.
-                if !complete {
-                    break;
-                }
-                continue;
-            }
-        };
-        match rec {
+    for rec in reader {
+        match rec? {
             Record::Header(h) => {
                 if header.is_some() {
-                    // A second header would mean a malformed file; the
-                    // schema only allows one. Skip rather than fail to
-                    // honour the "tolerate partial files" contract.
+                    // The schema only allows one header. Skip rather
+                    // than fail, to honour the "tolerate partial
+                    // files" contract.
                     continue;
                 }
                 if h.schema != crate::schema::SCHEMA_VERSION {
@@ -639,7 +684,11 @@ mod tests {
         // A run killed before any sample was taken still has a header.
         let header = serde_json::to_string(&Record::Header(fake_header("echo"))).unwrap();
         let text = format!("{header}\n");
-        let r = parse_jsonl(&text, Path::new("/tmp/x.jsonl")).unwrap();
+        let r = parse_jsonl(
+            ReportReader::new(text.as_bytes()),
+            Path::new("/tmp/x.jsonl"),
+        )
+        .unwrap();
         assert!(r.samples.is_empty());
         assert!(r.footer.is_none());
     }
@@ -651,7 +700,11 @@ mod tests {
         let sample = serde_json::to_string(&Record::Sample(fake_sample(0))).unwrap();
         // Insert an unknown record type between header and sample.
         let text = format!("{header}\n{{\"type\":\"future\",\"x\":1}}\n{sample}\n");
-        let r = parse_jsonl(&text, Path::new("/tmp/x.jsonl")).unwrap();
+        let r = parse_jsonl(
+            ReportReader::new(text.as_bytes()),
+            Path::new("/tmp/x.jsonl"),
+        )
+        .unwrap();
         assert_eq!(r.samples.len(), 1);
     }
 
@@ -664,7 +717,11 @@ mod tests {
         let mut partial = sample.clone();
         partial.truncate(partial.len() - 5);
         let text = format!("{header}\n{sample}\n{partial}");
-        let r = parse_jsonl(&text, Path::new("/tmp/x.jsonl")).unwrap();
+        let r = parse_jsonl(
+            ReportReader::new(text.as_bytes()),
+            Path::new("/tmp/x.jsonl"),
+        )
+        .unwrap();
         // Only the well-formed sample is kept; the truncated tail is ignored.
         assert_eq!(r.samples.len(), 1);
         assert!(r.footer.is_none());
@@ -675,7 +732,11 @@ mod tests {
     fn parse_jsonl_rejects_unknown_schema_with_path_and_field() {
         let bad = r#"{"type":"header","schema":999,"tool":{"name":"rprof","version":"x"},"run":{"command":["x"],"cwd":"/","env_fingerprint":"00","start_time":"2026-01-01T00:00:00Z","backend":"proc","sample_interval_ms":100},"host":{"hostname":"h","kernel":"x","cpu_count":1,"total_memory_bytes":0,"clock_ticks_per_sec":100}}"#;
         let text = format!("{bad}\n");
-        let err = parse_jsonl(&text, Path::new("/tmp/bad.jsonl")).unwrap_err();
+        let err = parse_jsonl(
+            ReportReader::new(text.as_bytes()),
+            Path::new("/tmp/bad.jsonl"),
+        )
+        .unwrap_err();
         let msg = format!("{err}");
         assert!(msg.contains("/tmp/bad.jsonl"), "error mentions path: {msg}");
         assert!(msg.contains("schema"), "error mentions schema: {msg}");
@@ -695,7 +756,11 @@ mod tests {
         }))
         .unwrap();
         let text = format!("{header}\n{sample}\n{footer}\n");
-        let r = parse_jsonl(&text, Path::new("/tmp/x.jsonl")).unwrap();
+        let r = parse_jsonl(
+            ReportReader::new(text.as_bytes()),
+            Path::new("/tmp/x.jsonl"),
+        )
+        .unwrap();
         assert_eq!(r.samples.len(), 1);
         let f = r.footer.expect("footer present");
         assert_eq!(f.wall_duration_ms, 250);
