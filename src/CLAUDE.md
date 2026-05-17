@@ -10,7 +10,7 @@ so integration tests in `tests/` can reuse types and helpers.
 |---|---|
 | `main.rs` | Thin shim. Calls `cli::run()` and translates the result into a `ExitCode`. |
 | `lib.rs` | Library root. Declares the `pub` module surface (`cli`, `schema`, `proc_parse` [linux-only], `sampler`, `runner`, `viewer`) that integration tests in `tests/` link against. Add new top-level modules here. |
-| `cli.rs` | `clap` parsing for `run` and `view` plus a hidden `__alloc-fixture` test helper. Dispatches to `runner` / `viewer`. |
+| `cli.rs` | `clap` parsing for `run` and `view`. Dispatches to `runner` / `viewer`. |
 | `schema.rs` | Frozen JSONL schema (v1) with `serde` derives. `Record` is the tagged enum of `Header` / `Sample` / `Footer` rows; `SCHEMA_VERSION` is the version gate the viewer checks. |
 | `proc_parse.rs` | Linux-only. Parsers for `/proc/<pid>/stat` (`ProcStat`) and `/proc/<pid>/io` (`ProcIo`), plus the `count_fds()` helper over `/proc/<pid>/fd/`. String-in / struct-out so fixtures drive the parser tests. |
 | `sampler.rs` | `Sampler` trait + Linux `ProcSampler` backend that wraps `proc_parse`. Returns `Ok(None)` when the target is gone. |
@@ -25,8 +25,10 @@ so integration tests in `tests/` can reuse types and helpers.
   child command, forwarded verbatim.
 - Exit code mirrors the child (or `128 + signum` if the child died from a
   signal). `rprof run` must remain drop-in compatible with shell pipelines.
-- Hidden subcommands (`__alloc-fixture`) are test fixtures. Hide them with
-  `hide = true` and document them as test-only in the docstring.
+- Test fixtures live under `examples/` and are referenced by integration
+  tests via the shared `target/<profile>/examples/` directory — see
+  `alloc_fixture_bin()` in `tests/runner_integration.rs`. Production
+  `rprof` exposes only the user-facing `run` and `view` subcommands.
 
 ### Sampling
 

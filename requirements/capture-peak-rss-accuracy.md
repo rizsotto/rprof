@@ -29,8 +29,8 @@ and regression detection.
 ## Non-functional constraints
 
 - The accuracy must hold across debug and release builds of the
-  workload. The acceptance test pins this with the hidden
-  `__alloc-fixture` subcommand of rprof itself.
+  workload. The acceptance test pins this with the `alloc_fixture`
+  Cargo example binary that lives under `examples/`.
 - The accuracy must hold for allocations from 1 MiB up to system RAM.
   Smaller allocations are noisier because the workload's baseline RSS
   dominates.
@@ -59,7 +59,7 @@ and regression detection.
 
 Given a workload that allocates 64 MiB of dirtied heap and sleeps:
 
-> When `rprof run -- rprof __alloc-fixture 64 0.6` runs,
+> When `rprof run -- target/debug/examples/alloc_fixture 64 0.6` runs,
 > then the maximum `sample.rss_bytes` value across the report's
 > samples is between 95 % of 64 MiB and 105 % of 64 MiB plus a
 > 16 MiB allowance for rprof's own footprint.
@@ -72,8 +72,11 @@ Given a workload that allocates 64 MiB of dirtied heap and sleeps:
 
 ## Notes
 
-- The fixture lives behind a hidden `__alloc-fixture` subcommand on
-  rprof itself, so the integration test does not depend on Python,
-  `dd`, or any other host tool.
+- The fixture lives in `examples/alloc_fixture.rs`, built on demand by
+  the integration test's `alloc_fixture_bin()` helper. Keeping it as a
+  Cargo example rather than a hidden subcommand of `rprof` itself means
+  the production binary doesn't carry test scaffolding while the
+  integration test still avoids depending on Python, `dd`, or any
+  other host tool.
 - Observed accuracy on Fedora 44 is ~3.5 % over (66.3 MiB measured for
   a 64 MiB request in release builds).

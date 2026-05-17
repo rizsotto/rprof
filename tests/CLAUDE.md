@@ -23,9 +23,10 @@ the bottom of each `src/*.rs`).
   files; never write into the repo root or `./.rprof/` (except the one test
   that exercises the auto-output path, which uses `current_dir()` on a
   tempdir).
-- The hidden `__alloc-fixture` subcommand of `rprof` is the canonical way to
-  produce a workload with a known RSS footprint. Reach for it instead of
-  `dd`/`python`/etc.
+- The `alloc_fixture` example binary (`examples/alloc_fixture.rs`) is the
+  canonical way to produce a workload with a known RSS footprint. Reach
+  for it instead of `dd`/`python`/etc.; the integration helper
+  `alloc_fixture_bin()` builds it on demand and returns its path.
 - Spawn `rprof` via `env!("CARGO_BIN_EXE_rprof")`, never via `cargo run`.
 - Avoid sleeps longer than 1 second. The whole suite should finish in a
   couple of seconds on a developer laptop.

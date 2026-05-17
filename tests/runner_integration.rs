@@ -14,6 +14,35 @@ fn rprof_bin() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_rprof"))
 }
 
+/// Path to the `alloc_fixture` example binary. Cargo does not build
+/// examples for `cargo test` and does not expose
+/// `CARGO_BIN_EXE_<name>` for them, so the helper builds the example
+/// on demand and derives its target/<profile>/examples/ path from the
+/// `rprof` bin location. A second call is a no-op once the binary is
+/// up to date.
+fn alloc_fixture_bin() -> PathBuf {
+    let path = rprof_bin()
+        .parent()
+        .expect("rprof binary has a parent directory")
+        .join("examples")
+        .join("alloc_fixture");
+    let status = Command::new(env!("CARGO"))
+        .args(["build", "--example", "alloc_fixture"])
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .status()
+        .expect("invoking cargo to build alloc_fixture example");
+    assert!(
+        status.success(),
+        "cargo build --example alloc_fixture failed"
+    );
+    assert!(
+        path.exists(),
+        "expected alloc_fixture binary at {}",
+        path.display()
+    );
+    path
+}
+
 #[derive(Debug, Default)]
 struct ParsedReport {
     header: Option<Header>,
@@ -251,8 +280,8 @@ fn run_peak_rss_matches_known_allocation_within_5pct() {
     let mb: u64 = 64;
     let tmp = tempfile::tempdir().unwrap();
     let out = tmp.path().join("alloc.jsonl");
-    let bin = rprof_bin();
-    let status = Command::new(&bin)
+    let fixture = alloc_fixture_bin();
+    let status = Command::new(rprof_bin())
         .args([
             "run",
             "-o",
@@ -261,8 +290,8 @@ fn run_peak_rss_matches_known_allocation_within_5pct() {
             "20ms",
             "--",
         ])
-        .arg(&bin)
-        .args(["__alloc-fixture", &mb.to_string(), "0.6"])
+        .arg(&fixture)
+        .args([&mb.to_string(), "0.6"])
         .status()
         .expect("rprof should run");
     assert!(status.success(), "fixture run should succeed");

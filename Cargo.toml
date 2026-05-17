@@ -14,6 +14,14 @@ categories = ["command-line-utilities", "development-tools::profiling"]
 name = "rprof"
 path = "src/main.rs"
 
+# Test-only fixture binary. Used by the integration test that
+# exercises peak-RSS accuracy; built on demand by the test (Cargo
+# does not build examples for `cargo test`). Not shipped by
+# `cargo install` because examples are excluded from installed targets.
+[[example]]
+name = "alloc_fixture"
+path = "examples/alloc_fixture.rs"
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
