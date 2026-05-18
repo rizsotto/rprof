@@ -142,7 +142,7 @@ fn view_rejects_unknown_schema_version() {
     let bad = tmp.path().join("bad.jsonl");
     std::fs::write(
         &bad,
-        "{\"type\":\"header\",\"schema\":999,\"tool\":{\"name\":\"rprof\",\"version\":\"x\"},\"run\":{\"command\":[\"x\"],\"cwd\":\"/\",\"env_fingerprint\":\"00\",\"start_time\":\"2026-01-01T00:00:00Z\",\"backend\":\"proc\",\"sample_interval_ms\":100},\"host\":{\"hostname\":\"h\",\"kernel\":\"x\",\"cpu_count\":1,\"total_memory_bytes\":0,\"clock_ticks_per_sec\":100}}\n",
+        "{\"type\":\"header\",\"schema\":999,\"tool\":{\"name\":\"rprof\",\"version\":\"x\"},\"run\":{\"command\":[\"x\"],\"cwd\":\"/\",\"start_time\":\"2026-01-01T00:00:00Z\",\"backend\":\"proc\",\"sample_interval_ms\":100},\"host\":{\"hostname\":\"h\",\"kernel\":\"x\",\"cpu_count\":1,\"total_memory_bytes\":0,\"clock_ticks_per_sec\":100}}\n",
     )
     .unwrap();
     let out = Command::new(rprof_bin())
@@ -181,7 +181,6 @@ fn view_renders_partial_file_without_footer() {
         run: Run {
             command: vec!["sleep".into(), "5".into()],
             cwd: "/tmp".into(),
-            env_fingerprint: "0".repeat(64),
             start_time: "2026-05-14T10:30:00Z".into(),
             backend: "proc".into(),
             sample_interval_ms: 100,
@@ -242,7 +241,6 @@ fn view_tolerates_truncated_trailing_line() {
         run: Run {
             command: vec!["echo".into()],
             cwd: "/tmp".into(),
-            env_fingerprint: "0".repeat(64),
             start_time: "2026-05-14T10:30:00Z".into(),
             backend: "proc".into(),
             sample_interval_ms: 100,

@@ -318,7 +318,6 @@ struct ViewSummary {
 struct ViewRun<'a> {
     command: &'a [String],
     cwd: &'a str,
-    env_fingerprint: &'a str,
     start_time: &'a str,
     wall_duration_ms: u64,
     exit_code: Option<i32>,
@@ -402,7 +401,6 @@ fn build_view_report<'a>(label: &'a str, report: &'a LoadedReport) -> ViewEntry<
             run: ViewRun {
                 command: &report.header.run.command,
                 cwd: &report.header.run.cwd,
-                env_fingerprint: &report.header.run.env_fingerprint,
                 start_time: &report.header.run.start_time,
                 wall_duration_ms: footer.map(|f| f.wall_duration_ms).unwrap_or(0),
                 exit_code: footer.and_then(|f| f.exit_code),
@@ -518,7 +516,6 @@ mod tests {
             run: Run {
                 command: vec![cmd.into()],
                 cwd: "/tmp".into(),
-                env_fingerprint: "0".repeat(64),
                 start_time: "2026-05-14T10:30:00Z".into(),
                 backend: "proc".into(),
                 sample_interval_ms: 100,
@@ -730,7 +727,7 @@ mod tests {
     // Requirements: schema-v1
     #[test]
     fn parse_jsonl_rejects_unknown_schema_with_path_and_field() {
-        let bad = r#"{"type":"header","schema":999,"tool":{"name":"rprof","version":"x"},"run":{"command":["x"],"cwd":"/","env_fingerprint":"00","start_time":"2026-01-01T00:00:00Z","backend":"proc","sample_interval_ms":100},"host":{"hostname":"h","kernel":"x","cpu_count":1,"total_memory_bytes":0,"clock_ticks_per_sec":100}}"#;
+        let bad = r#"{"type":"header","schema":999,"tool":{"name":"rprof","version":"x"},"run":{"command":["x"],"cwd":"/","start_time":"2026-01-01T00:00:00Z","backend":"proc","sample_interval_ms":100},"host":{"hostname":"h","kernel":"x","cpu_count":1,"total_memory_bytes":0,"clock_ticks_per_sec":100}}"#;
         let text = format!("{bad}\n");
         let err = parse_jsonl(
             ReportReader::new(text.as_bytes()),

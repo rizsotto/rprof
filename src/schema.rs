@@ -62,9 +62,6 @@ impl Tool {
 pub struct Run {
     pub command: Vec<String>,
     pub cwd: String,
-    /// SHA-256 hex digest of the sorted `KEY=VALUE\n`-joined environment.
-    /// 64 lowercase hex chars. The full environment is **not** stored.
-    pub env_fingerprint: String,
     /// RFC 3339 / ISO 8601 with millisecond precision, in UTC
     /// (e.g. `2026-05-14T10:30:00.000Z`).
     pub start_time: String,
@@ -119,7 +116,7 @@ pub struct Footer {
 /// that parses it.
 #[cfg(test)]
 const CANONICAL_EXAMPLE_JSONL: &str = "\
-{\"type\":\"header\",\"schema\":1,\"tool\":{\"name\":\"rprof\",\"version\":\"0.1.0\"},\"run\":{\"command\":[\"sleep\",\"0.1\"],\"cwd\":\"/tmp\",\"env_fingerprint\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"start_time\":\"2026-05-14T10:30:00.000Z\",\"backend\":\"proc\",\"sample_interval_ms\":100},\"host\":{\"hostname\":\"h\",\"kernel\":\"Linux 6.8.0\",\"cpu_count\":4,\"total_memory_bytes\":17179869184,\"clock_ticks_per_sec\":100}}
+{\"type\":\"header\",\"schema\":1,\"tool\":{\"name\":\"rprof\",\"version\":\"0.1.0\"},\"run\":{\"command\":[\"sleep\",\"0.1\"],\"cwd\":\"/tmp\",\"start_time\":\"2026-05-14T10:30:00.000Z\",\"backend\":\"proc\",\"sample_interval_ms\":100},\"host\":{\"hostname\":\"h\",\"kernel\":\"Linux 6.8.0\",\"cpu_count\":4,\"total_memory_bytes\":17179869184,\"clock_ticks_per_sec\":100}}
 {\"type\":\"sample\",\"t_ms\":0,\"wall_ms\":1700000000000,\"utime_ticks\":0,\"stime_ticks\":0,\"rss_bytes\":1048576,\"vsz_bytes\":2097152,\"threads\":1,\"open_fds\":4,\"io_read_bytes\":0,\"io_write_bytes\":0}
 {\"type\":\"footer\",\"wall_duration_ms\":100,\"exit_code\":0,\"signal\":null,\"user_cpu_ms\":12,\"system_cpu_ms\":3}
 ";
@@ -135,7 +132,6 @@ mod tests {
             run: Run {
                 command: vec!["sleep".into(), "0.1".into()],
                 cwd: "/tmp".into(),
-                env_fingerprint: "0".repeat(64),
                 start_time: "2026-05-14T10:30:00.000Z".into(),
                 backend: "proc".into(),
                 sample_interval_ms: 100,
@@ -252,7 +248,7 @@ mod tests {
     #[test]
     fn additive_fields_tolerated_on_read() {
         // An extra field on the run object must not break the parser.
-        let line = r#"{"type":"header","schema":1,"tool":{"name":"rprof","version":"0.1.0"},"run":{"command":["echo"],"cwd":"/tmp","env_fingerprint":"00","start_time":"2026-05-14T10:30:00Z","backend":"proc","sample_interval_ms":100,"future_field":"ignored"},"host":{"hostname":"h","kernel":"Linux","cpu_count":1,"total_memory_bytes":0,"clock_ticks_per_sec":100}}"#;
+        let line = r#"{"type":"header","schema":1,"tool":{"name":"rprof","version":"0.1.0"},"run":{"command":["echo"],"cwd":"/tmp","start_time":"2026-05-14T10:30:00Z","backend":"proc","sample_interval_ms":100,"future_field":"ignored"},"host":{"hostname":"h","kernel":"Linux","cpu_count":1,"total_memory_bytes":0,"clock_ticks_per_sec":100}}"#;
         let r: Result<Record, _> = serde_json::from_str(line);
         assert!(r.is_ok(), "extra fields should be tolerated: {r:?}");
     }

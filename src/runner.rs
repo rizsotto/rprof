@@ -24,7 +24,6 @@ use std::thread;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
-use sha2::Digest;
 
 use crate::cli::RunArgs;
 use crate::schema::{
@@ -185,7 +184,6 @@ fn build_header(args: &RunArgs, timing: &RunTiming) -> Header {
         run: Run {
             command: args.command.clone(),
             cwd,
-            env_fingerprint: env_fingerprint(),
             start_time: timing.start_time_rfc3339(),
             backend: "proc".to_string(),
             sample_interval_ms: args.interval.as_millis() as u64,
@@ -289,14 +287,6 @@ fn clock_ticks_per_second_u64() -> u64 {
     {
         100
     }
-}
-
-fn env_fingerprint() -> String {
-    let mut entries: Vec<String> = std::env::vars().map(|(k, v)| format!("{k}={v}")).collect();
-    entries.sort();
-    let joined = entries.join("\n");
-    let digest = sha2::Sha256::digest(joined.as_bytes());
-    hex::encode(digest)
 }
 
 #[cfg(target_os = "linux")]
@@ -459,13 +449,6 @@ mod tests {
     fn exit_status_signal_uses_128_plus_signum() {
         assert_eq!(exit_status_to_u8(None, Some(2)), 130); // SIGINT
         assert_eq!(exit_status_to_u8(None, Some(15)), 143); // SIGTERM
-    }
-
-    #[test]
-    fn env_fingerprint_is_64_hex_chars() {
-        let fp = env_fingerprint();
-        assert_eq!(fp.len(), 64);
-        assert!(fp.chars().all(|c| c.is_ascii_hexdigit()));
     }
 
     #[test]
