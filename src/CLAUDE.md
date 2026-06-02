@@ -4,6 +4,13 @@ Library + binary crate for `rprof`. Compiles to one binary (`rprof`) with two
 user-facing subcommands. The library is exposed (`pub` modules in `lib.rs`)
 so integration tests in `tests/` can reuse types and helpers.
 
+The behavioural contract each module implements lives in
+[`../docs/requirements/`](../docs/requirements/); the *why* behind a
+non-obvious design choice lives in
+[`../docs/rationale/`](../docs/rationale/). Code comments carry the
+*how*. If you are about to explain a design decision in a long comment,
+check whether it belongs in a rationale entry instead.
+
 ## Module map
 
 | File | Responsibility |

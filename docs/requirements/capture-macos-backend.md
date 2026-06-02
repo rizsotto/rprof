@@ -38,6 +38,6 @@ already works portably on macOS.
 
 ## Notes
 
-- Out of scope for v1 per [`../CLAUDE.md`](../CLAUDE.md)'s non-goals
+- Out of scope for v1 per [`../../CLAUDE.md`](../../CLAUDE.md)'s non-goals
   framing (Linux is primary; macOS is best-effort).
 - Related: [`capture-proc-backend`](capture-proc-backend.md).
