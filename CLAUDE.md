@@ -106,6 +106,7 @@ tracker when picked up.
 | Add or modify a unit or integration test | [`tests/CLAUDE.md`](tests/CLAUDE.md) |
 | Touch vendored uPlot files or the viewer JS/CSS | [`assets/CLAUDE.md`](assets/CLAUDE.md) |
 | Add, change, or check a functional requirement | [`docs/requirements/CLAUDE.md`](docs/requirements/CLAUDE.md) |
+| Record or look up a design decision (or a rejected option) | [`docs/rationale/CLAUDE.md`](docs/rationale/CLAUDE.md) |
 | Dogfood the tool or iterate on the viewer interactively | [`scripts/CLAUDE.md`](scripts/CLAUDE.md) |
 
 Do not skip these reads. They contain area-specific rules (e.g. "do not edit
