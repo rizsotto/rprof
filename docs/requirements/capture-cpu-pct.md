@@ -56,21 +56,6 @@ above 100 % on a uniprocessor) need clear documented reasons.
   `delta_t_seconds = max(actual, 1ms)` floor guards against the
   degenerate case where two samples land in the same millisecond.
 
-## Implementation details
-
-- `build_view_report()` in `src/viewer.rs` does the per-sample
-  derivation at load time. It runs in a single pass over the
-  decoded `Sample` records, reading `host.clock_ticks_per_sec` from
-  the header.
-- `read_rusage_children()` in `src/runner.rs` calls
-  `libc::getrusage(RUSAGE_CHILDREN, ...)` after the child has been
-  reaped and converts the two `timeval` fields to milliseconds; the
-  values are written into the footer.
-- `clock_ticks_per_second_u64()` in `src/runner.rs` returns
-  `sysconf(_SC_CLK_TCK)` (default 100 on Linux), defaulting to 100
-  on the unlikely failure path. The value is carried on the header
-  as `host.clock_ticks_per_sec`.
-
 ## Known limitations
 
 - A child that uses more than one core may produce CPU% greater than

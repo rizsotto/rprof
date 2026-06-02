@@ -40,17 +40,6 @@ foot-gun.
   `libc::kill` are allowed inside it. No allocation, no `printf`, no lock
   acquisition.
 
-## Implementation details
-
-- A `static AtomicI32` holds the child PID. The handler reads it and calls
-  `libc::kill(pid, sig)`. See `install_signal_forwarder` and
-  `forward_signal` in `src/runner.rs`.
-- `libc::signal` installs the handler for each signal. The Rust default
-  for SIGINT/SIGTERM is to terminate immediately, which would defeat the
-  guarantee, so we override it.
-- The sampler thread is signalled to stop after `child.wait()` returns
-  via an mpsc channel; it then drains and the runner writes the report.
-
 ## Known limitations
 
 - SIGKILL cannot be caught. If `rprof` itself is SIGKILL'd, no report is

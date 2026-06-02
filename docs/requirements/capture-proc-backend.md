@@ -36,25 +36,11 @@ files under `/proc/<pid>/`.
 - Every read tolerates `ENOENT` mid-sample. Processes can disappear
   between `readdir` and `open`; that is normal, not an error.
 
-## Implementation details
-
-- Parsers live in `src/proc_parse.rs` and operate on `&str` inputs so
-  unit tests drive them with fixture data (real `/proc/<pid>/stat`
-  contents pasted into string constants).
-- `ProcStat::parse` handles the `comm` field's potential spaces and
-  closing parens by splitting at the *last* `)` (per `man 5 proc`).
-- `ProcIo::parse` ignores fields it does not care about and defaults
-  missing fields to zero; older kernels and unprivileged processes
-  may produce empty `io` files.
-- `ProcSampler` in `src/sampler.rs` wraps the parsers. The struct is
-  the canonical entry point; the internal `proc_backend` module is an
-  implementation detail.
-
 ## Known limitations
 
 - This backend samples one PID — the direct child of `rprof run`.
   Aggregating across the process tree is a non-goal (see the
-  Non-goals section in [`../CLAUDE.md`](../CLAUDE.md)).
+  Non-goals section in [`../../CLAUDE.md`](../../CLAUDE.md)).
 - `/proc/<pid>/io` is empty for processes the caller cannot ptrace.
   When that happens, IO counters stay at zero for the whole run.
 - Linux only. macOS support via `libproc` / `proc_pidinfo` is planned
@@ -85,3 +71,8 @@ Given the sampler against the test process itself:
 - The /proc layout is stable Linux kernel API. We pin to fields by
   index (per `man 5 proc`) rather than by name; new fields added
   after field 24 do not affect us.
+
+## Rationale
+
+- [`cgroup-v2-backend-rejected`](../rationale/cgroup-v2-backend-rejected.md)
+  — why `/proc` polling, and not a transient cgroup v2.

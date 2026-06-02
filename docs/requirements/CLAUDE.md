@@ -4,6 +4,11 @@ This directory is the source of truth for what `rprof` is supposed to do.
 Tests verify that the implementation matches; code that drifts from these
 specs is wrong, not the spec.
 
+Requirements are **contract-only**: they describe what the user can
+expect, not why a design was chosen and not where the bits live. The
+*why* belongs in [`../rationale/`](../rationale/) (link it from a
+`## Rationale` section); the *how* belongs in the code and its comments.
+
 ## File naming
 
 ```
@@ -27,9 +32,9 @@ Areas in use today:
 Every requirement file starts with YAML frontmatter and follows the
 structure below. Files at `status: implemented` should fill every
 section; `proposed`, `accepted`, and `planned` files may legitimately
-omit `Non-functional constraints`, `Implementation details`, `Known
-limitations`, and `Testing` when those are still being decided — capture
-the unknowns under an `Open questions` block in `Notes` instead.
+omit `Non-functional constraints`, `Known limitations`, and `Testing`
+when those are still being decided — capture the unknowns under an
+`Open questions` block in `Notes` instead.
 
 ```markdown
 ---
@@ -49,11 +54,6 @@ What the user expects, written from the user's perspective.
 
 Performance, platform support, etc. Omit if not relevant.
 
-## Implementation details
-
-Key choices and why. Keep brief; the code is the source of truth for the
-how, this section captures the rationale.
-
 ## Known limitations
 
 What this requirement intentionally does **not** cover. Helps reviewers
@@ -66,7 +66,16 @@ tests in `tests/` implement them.
 
 ## Notes
 
-Decisions, links to issues, future work.
+Brief decisions, links to issues, future work. A one-line decision is
+fine here; substantial reasoning or a rejected alternative goes in a
+rationale entry instead, linked below.
+
+## Rationale
+
+Optional. A list of links to the rationale entries under
+[`../rationale/`](../rationale/) that motivated this requirement — one
+short label per link, no prose. Omit the section when there is nothing
+to link.
 ```
 
 ## Status lifecycle
@@ -152,9 +161,13 @@ exits 1 listing the gaps otherwise. Requirements at any other status
 
 - Step-by-step implementation guides — those go in code comments or the
   per-directory `CLAUDE.md` files.
+- Design rationale, trade-offs, or rejected alternatives — those go in
+  [`../rationale/`](../rationale/); link them from a `## Rationale`
+  section.
 - Roadmap, goals, or non-goals — those live in
-  [`../CLAUDE.md`](../CLAUDE.md) under "Project overview".
+  [`../../CLAUDE.md`](../../CLAUDE.md) under "Project overview".
 - Bug reports or to-dos — those belong in the issue tracker.
 
 The requirements directory captures **what the software must do**, not how
-it is built and not what we wish it did some day.
+it is built, not why we built it that way, and not what we wish it did
+some day.

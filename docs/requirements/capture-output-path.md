@@ -33,14 +33,6 @@ keyed by start time so successive runs do not clobber each other.
 - The timestamp format is filesystem-safe on Linux and macOS (no colons,
   no slashes). Windows compatibility is not required for v1.
 
-## Implementation details
-
-- `resolve_output_path()` in `src/runner.rs` picks the explicit `-o`
-  value or constructs the timestamped fallback.
-- The chrono format string is `%Y-%m-%dT%H%M%S`. The `T` separator
-  matches RFC 3339 conventions; the trailing `:` segments are omitted
-  to keep the name filesystem-safe.
-
 ## Known limitations
 
 - Atomic-rename semantics (write to `.tmp`, then `rename(2)`) are not

@@ -27,17 +27,6 @@ shaped by the profiler.
   common `0` / non-zero distinction. CI systems that look for specific
   exit codes (such as Bash's `127` for command-not-found) rely on it.
 
-## Implementation details
-
-- `std::process::ExitStatus::code()` returns `Some(code)` for normal
-  exits; `ExitStatusExt::signal()` returns `Some(signum)` when the child
-  was killed.
-- The mapping function `exit_status_to_u8` in `src/runner.rs` implements
-  the truncation and `128 + signum` convention. Unit-tested with all the
-  edge cases.
-- `rprof`'s own internal failures (failed to write report, sampler thread
-  panicked, etc.) map to exit code 1 from the outer `main.rs` wrapper.
-
 ## Known limitations
 
 - The high bits of a child's exit code (anything above 255) are

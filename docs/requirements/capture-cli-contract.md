@@ -34,16 +34,6 @@ stops being safe to drop into a shell pipeline or CI step.
   and starting the sampler thread; sampling latency from t=0 should be
   bounded by the configured interval.
 
-## Implementation details
-
-- `clap`'s `trailing_var_arg = true` plus `num_args = 1..` on the
-  `command` field captures the post-`--` arguments without further
-  parsing.
-- `std::process::Command` with `Stdio::inherit()` on all three streams
-  spawns the child.
-- The current working directory is implicit: `Command` inherits it.
-- See `src/runner.rs`.
-
 ## Known limitations
 
 - No `--` enforcement at parse time when the first positional looks like

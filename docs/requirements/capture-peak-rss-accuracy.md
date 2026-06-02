@@ -35,16 +35,6 @@ and regression detection.
   Smaller allocations are noisier because the workload's baseline RSS
   dominates.
 
-## Implementation details
-
-- `ProcStat::rss_pages` is parsed from field 24 of `/proc/<pid>/stat`.
-- `ProcSampler::sample()` multiplies by the page size obtained from
-  `sysconf(_SC_PAGESIZE)` at sampler construction time, defaulting to
-  4096 if the syscall returns a non-positive value.
-- The viewer (`build_view_report` in `src/viewer.rs`) takes
-  `max(samples.rss_bytes)` on load; nothing on the capture path
-  retains the value.
-
 ## Known limitations
 
 - Allocations made and freed *between* samples are missed entirely.
