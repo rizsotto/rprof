@@ -32,6 +32,7 @@ a non-goal needs a decision there first.
 | Touch vendored uPlot files or the viewer JS/CSS | [`assets/CLAUDE.md`](assets/CLAUDE.md) |
 | Add, change, or check a functional requirement | [`docs/requirements/CLAUDE.md`](docs/requirements/CLAUDE.md) |
 | Record or look up a design decision (or a rejected option) | [`docs/rationale/CLAUDE.md`](docs/rationale/CLAUDE.md) |
+| Run an operational procedure (release, …) | invocable skills in [`.claude/skills/`](.claude/skills/) |
 | Dogfood the tool or iterate on the viewer interactively | [`scripts/CLAUDE.md`](scripts/CLAUDE.md) |
 
 Do not skip these reads. They contain area-specific rules (e.g. "do not

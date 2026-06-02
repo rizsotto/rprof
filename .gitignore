@@ -1,6 +1,7 @@
 /target
 /.rprof
-/.claude
+/.claude/*
+!/.claude/skills/
 /dogfood
 Cargo.lock.tmp
 *.swp

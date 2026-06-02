@@ -21,6 +21,10 @@ Standalone reference documents directly under `docs/`:
 - [`architecture.md`](architecture.md) — how data flows through the two
   subcommands, end to end.
 
+`docs/` holds reference documentation. Operational procedures (releasing,
+and similar) are invocable skills under
+[`../.claude/skills/`](../.claude/skills/), not files here.
+
 The user-facing CLI reference — flags, defaults, examples — is the
 top-level [`README.md`](../README.md), kept honest by the integration
 tests in [`../tests/`](../tests/).
