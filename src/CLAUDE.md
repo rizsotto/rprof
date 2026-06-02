@@ -1,97 +1,112 @@
 # CLAUDE.md — `src/` guide
 
-Library + binary crate for `rprof`. Compiles to one binary (`rprof`) with two
-user-facing subcommands. The library is exposed (`pub` modules in `lib.rs`)
-so integration tests in `tests/` can reuse types and helpers.
+How to write code in this crate. *What* each module is for lives in its
+own `//!` doc comment — read the file. The behavioural *contract* a
+module implements lives in [`../docs/requirements/`](../docs/requirements/);
+the *why* behind a non-obvious choice lives in
+[`../docs/rationale/`](../docs/rationale/). This guide is the house
+style: the narrow slice of Rust we use and the conventions that keep the
+crate small and testable.
 
-The behavioural contract each module implements lives in
-[`../docs/requirements/`](../docs/requirements/); the *why* behind a
-non-obvious design choice lives in
-[`../docs/rationale/`](../docs/rationale/). Code comments carry the
-*how*. If you are about to explain a design decision in a long comment,
-check whether it belongs in a rationale entry instead.
+`rprof` is one binary with a `run` and a `view` subcommand, built as a
+library (`pub` modules in `lib.rs`) so integration tests in `tests/` can
+link against its types. A new file opens with a `//!` saying what the
+module is for, then gets declared in `lib.rs`.
 
-## Module map
+## Conventions
 
-| File | Responsibility |
-|---|---|
-| `main.rs` | Thin shim. Calls `cli::run()` and translates the result into a `ExitCode`. |
-| `lib.rs` | Library root. Declares the `pub` module surface (`cli`, `schema`, `proc_parse` [linux-only], `sampler`, `runner`, `viewer`) that integration tests in `tests/` link against. Add new top-level modules here. |
-| `cli.rs` | `clap` parsing for `run` and `view`. Dispatches to `runner` / `viewer`. |
-| `schema.rs` | Frozen JSONL schema (v1) with `serde` derives. `Record` is the tagged enum of `Header` / `Sample` / `Footer` rows; `SCHEMA_VERSION` is the version gate the viewer checks. |
-| `proc_parse.rs` | Linux-only. Parsers for `/proc/<pid>/stat` (`ProcStat`) and `/proc/<pid>/io` (`ProcIo`), plus the `count_fds()` helper over `/proc/<pid>/fd/`. String-in / struct-out so fixtures drive the parser tests. |
-| `sampler.rs` | `Sampler` trait + Linux `ProcSampler` backend that wraps `proc_parse`. Returns `Ok(None)` when the target is gone. |
-| `runner.rs` | `rprof run`: spawn child, install signal forwarder, stream a header + per-tick samples + footer to disk. |
-| `viewer.rs` | `rprof view`: load reports (line-by-line, tolerant of unknown record types and a truncated trailing line), derive per-sample CPU% and peak RSS, render the self-contained HTML. Embeds `assets/*` via `include_str!`. |
+### Modules
 
-## Rules
+- Keep the module tree flat: top-level files under `src/`, declared in
+  `lib.rs`. No nested module directories — the crate is small enough
+  that one level navigates faster than a hierarchy.
+- A private inline submodule is justified only to hide a seam, the way
+  `proc_backend` inside `sampler.rs` encapsulates the Linux-specific
+  reads. Don't introduce one just to "organise"; reach for a new
+  top-level module instead, and only when it owns a distinct
+  responsibility you can state in one `//!` line.
+- Prefer extending an existing module over adding one.
 
-### CLI invariants
+### Traits and abstraction
 
-- The `--` separator on `rprof run` is mandatory. Everything after it is the
-  child command, forwarded verbatim.
-- Exit code mirrors the child (or `128 + signum` if the child died from a
-  signal). `rprof run` must remain drop-in compatible with shell pipelines.
-- Test fixtures live under `examples/` and are referenced by integration
-  tests via the shared `target/<profile>/examples/` directory — see
-  `alloc_fixture_bin()` in `tests/runner_integration.rs`. Production
-  `rprof` exposes only the user-facing `run` and `view` subcommands.
+- Introduce a trait only for a real polymorphism seam with a second
+  implementation actually in sight. The one trait today — `Sampler` — is
+  the capture-backend seam (Linux `ProcSampler` now, macOS planned). No
+  speculative traits, no generics for their own sake, no abstraction
+  added "in case".
+- `Sampler::sample()` returns `Ok(None)` when the target is gone; that
+  is the graceful-stop protocol the run loop depends on. A new backend
+  must honour it — do not turn target-gone into an `Err`.
 
-### Sampling
+### Concurrency
 
-- `Sampler::sample()` returns `Ok(None)` when the target PID is gone. The
-  polling loop uses that as the graceful stop signal — do not change it to
-  an error.
-- All `/proc` reads must tolerate `ENOENT` mid-sample (entries can disappear
-  between `readdir` and `open`).
-- CPU% is computed by the reader (viewer) from the cumulative
-  `utime_ticks` / `stime_ticks` carried on each `sample` record, using
-  `host.clock_ticks_per_sec` from the report's header. The runner does
-  **not** derive CPU% — it only records raw ticks. One pegged core reads
-  as 100%, four pegged cores as 400%. Do not normalise to total cores;
-  users expect top-style numbers.
+- The crate is almost entirely single-threaded. The *only* concurrency
+  lives in `runner.rs`: one background sampler thread (spawned at start,
+  joined after the child exits) and an async-signal-safe signal
+  forwarder. Keep it that way.
+- No async runtime (no `tokio`), no thread pools, no `Arc<Mutex<…>>`
+  sharing. The sampler thread communicates over a `std::sync::mpsc`
+  channel and sleeps on `recv_timeout(interval)`; the signal handler
+  touches only a `static AtomicI32` and `libc::kill` — the only work
+  async-signal-safety permits. Don't widen either surface.
 
-### Signal handling
+### Defensive `/proc` reads
 
-- `runner.rs` installs handlers for SIGINT/SIGTERM/SIGHUP via `libc::signal`
-  with a tiny async-signal-safe forwarder (atomic load + `libc::kill`).
-- The header and any sample records already on disk survive any
-  catchable signal — they were flushed each tick. The footer must also
-  be written before `rprof` exits when the child died from a forwarded
-  (catchable) signal. The integration test
-  `run_forwards_sigint_and_still_writes_report` protects this.
-- SIGKILL is uncatchable; the file in that case is a partial report
-  (header + samples, no footer). The
-  `run_killed_with_sigkill_leaves_header_and_samples_no_footer` test
-  pins that contract.
+- Every `/proc/<pid>` read must tolerate `ENOENT` mid-sample: a process
+  can vanish between `readdir` and `open`. That is normal, not an error.
 
-### Schema (`schema.rs`)
+### Error handling
 
-- `SCHEMA_VERSION` is frozen at `1`. Bump only on a breaking change.
-- The on-disk format is JSON Lines: one `Record` per line. `Record`
-  is a serde-tagged enum (`type = "header" | "sample" | "footer"`).
-- Adding new fields is additive and **does not** bump the version; viewer
-  and writer use serde's permissive defaults. The unit test
-  `additive_fields_tolerated_on_read` pins this for reads.
-- Defining a new record type does not bump the version either; readers
-  ignore unknown record types. `unknown_record_type_is_skipped_by_reader`
-  pins the deserialiser side; `parse_jsonl_tolerates_unknown_record_types`
-  pins it through the viewer loader.
-- Per-sample (one record per timestamp) layout is mandatory: it is what
-  makes streaming writes and partial-file recovery possible. Do not
-  convert to columnar.
+- `anyhow::Result` with `.context(…)` at the boundaries where a failure
+  needs explaining. No bespoke error enums, and no error paths for
+  states that cannot occur — `main.rs` turns any `Err` into exit 1.
 
-### Viewer (`viewer.rs`)
+### Computation lives in the reader
 
-- HTML output is a single self-contained file. Do not introduce external
-  references (no CDNs, no separate JSON files, no asset directories).
-- The inlined JSON payload must escape `</` to `<\/` to survive embedding
-  inside `<script type="application/json">`. `payload_escapes_closing_script_tags`
-  pins this.
-- `render_html()` is `pub` so tests can call it directly; keep it free of side
-  effects (no fs writes, no `Command` execution).
+- The writer records raw cumulative counters; the viewer derives the
+  rest (CPU %, IO rate, peak RSS) on load. Put new derivations on the
+  read side so the on-disk schema stays minimal and can evolve without a
+  version bump.
+
+### Purity for testability
+
+- Keep render/derive functions side-effect-free so a test can call them
+  directly: `render_html()` is `pub` and does no filesystem writes or
+  `Command` execution. Push IO to the edges (`runner.rs`, the `view`
+  dispatch in `cli.rs`).
+
+### Tests
+
+- Pure functions (parsers, derivations) get unit tests in an in-file
+  `#[cfg(test)] mod tests`, driven by fixture strings — that is why the
+  parsers take `&str` / `&[u8]` rather than opening files themselves.
+- Behavioural contracts get integration tests under `tests/`, each
+  tagged `// Requirements: <id>` (see
+  [`../docs/requirements/CLAUDE.md`](../docs/requirements/CLAUDE.md)).
+- Test fixtures are Cargo examples under `examples/`, invoked via the
+  shared `target/<profile>/examples/` path (see `alloc_fixture_bin()` in
+  `tests/runner_integration.rs`). The shipped binary exposes only `run`
+  and `view` — no hidden test-only subcommands.
+
+### Dependencies
+
+- Resist adding crates. The single-static-binary, no-runtime-deps goal
+  rides on a small dependency tree; a new dependency needs a real
+  justification, not convenience.
 
 ## File headers
 
 Every `.rs` file under `src/` (and `tests/`) starts with
-`// SPDX-License-Identifier: MIT` as the first line, before module docs.
+`// SPDX-License-Identifier: MIT` as the very first line, before the
+`//!` module doc.
+
+## Contracts these modules implement
+
+This guide is house style, not behaviour. The user-visible contracts —
+the mandatory `--` separator and exit-code mirroring, the
+signal/report-on-exit guarantee, the frozen schema and its
+forward-compatibility rules, the self-contained-HTML output and the
+`</` → `<\/` escaping — live in
+[`../docs/requirements/`](../docs/requirements/), pinned by the tagged
+tests. Change behaviour there (and in its test) first; do not restate or
+fork those contracts here, where they would drift.
