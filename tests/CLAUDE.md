@@ -34,7 +34,7 @@ the bottom of each `src/*.rs`).
 ## Requirements traceability
 
 When a test protects a specific behavioural requirement in
-[`requirements/`](../requirements/), annotate it with a `Requirements:`
+[`requirements/`](../docs/requirements/), annotate it with a `Requirements:`
 comment immediately above the `#[test]` attribute:
 
 ```rust
@@ -50,7 +50,7 @@ a macro — `cargo test` ignores it but grep finds it:
 grep -rn "Requirements:.*capture-signal-forwarding" tests/ src/
 ```
 
-See [`requirements/CLAUDE.md`](../requirements/CLAUDE.md) for the canonical
+See [`requirements/CLAUDE.md`](../docs/requirements/CLAUDE.md) for the canonical
 test ↔ requirement linkage rules.
 
 ## Adding a new integration test

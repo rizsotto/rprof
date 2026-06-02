@@ -23,7 +23,7 @@ jobs:
       - name: Run clippy
         run: cargo clippy --all-targets -- -D warnings
       - name: Check requirement coverage
-        run: sh scripts/check-coverage.sh
+        run: sh scripts/check-requirements-coverage.sh
 
   test:
     name: Test

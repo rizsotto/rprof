@@ -88,12 +88,12 @@ need a separate decision rather than a quick "while we're at it":
   substitute.
 
 Post-v1 *behavioural* plans are tracked as individual requirement files
-with `status: planned` in [`requirements/`](requirements/) — search the
-directory for the current backlog.
+with `status: planned` in [`docs/requirements/`](docs/requirements/) —
+search the directory for the current backlog.
 
 Distribution and release engineering (prebuilt artefacts via `cargo
 dist`, a Homebrew tap, a `SCHEMA.md` cheat sheet, `CONTRIBUTING.md`)
-are intentionally **not** tracked under `requirements/`. That directory
+are intentionally **not** tracked under `docs/requirements/`. That directory
 captures what the software does, not how it is shipped or documented.
 Those tasks belong to release planning and can live in the issue
 tracker when picked up.
@@ -105,7 +105,7 @@ tracker when picked up.
 | Add or change a CLI flag, subcommand, or runner/viewer flow | [`src/CLAUDE.md`](src/CLAUDE.md) |
 | Add or modify a unit or integration test | [`tests/CLAUDE.md`](tests/CLAUDE.md) |
 | Touch vendored uPlot files or the viewer JS/CSS | [`assets/CLAUDE.md`](assets/CLAUDE.md) |
-| Add, change, or check a functional requirement | [`requirements/CLAUDE.md`](requirements/CLAUDE.md) |
+| Add, change, or check a functional requirement | [`docs/requirements/CLAUDE.md`](docs/requirements/CLAUDE.md) |
 | Dogfood the tool or iterate on the viewer interactively | [`scripts/CLAUDE.md`](scripts/CLAUDE.md) |
 
 Do not skip these reads. They contain area-specific rules (e.g. "do not edit
@@ -157,9 +157,9 @@ no --no-open        ──>  HTML to -o or temp file, then xdg-open / open
 
 For new features or behaviour changes:
 
-1. Check [`requirements/`](requirements/) for an existing spec.
+1. Check [`docs/requirements/`](docs/requirements/) for an existing spec.
 2. If absent, write a `proposed` requirement file before coding (see
-   [`requirements/CLAUDE.md`](requirements/CLAUDE.md) for the template).
+   [`docs/requirements/CLAUDE.md`](docs/requirements/CLAUDE.md) for the template).
 3. Implement TDD-style: write integration tests that reference the
    requirement, then make them pass.
 4. Mark the requirement `implemented` once tests are green.

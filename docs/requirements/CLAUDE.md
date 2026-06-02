@@ -140,7 +140,7 @@ test. CI enforces this via the lint job; you can run the same check
 locally:
 
 ```sh
-sh scripts/check-coverage.sh
+sh scripts/check-requirements-coverage.sh
 ```
 
 The script exits 0 when every implemented requirement is covered and

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Check that every `status: implemented` requirement under `requirements/`
+# Check that every `status: implemented` requirement under `docs/requirements/`
 # has at least one test tagged with `Requirements: <id>` under `src/` or
 # `tests/`.
 #
@@ -21,7 +21,7 @@ cd "$project_root"
 missing=
 missing_count=0
 
-for f in requirements/*.md; do
+for f in docs/requirements/*.md; do
     id=$(basename "$f" .md)
     [ "$id" = "CLAUDE" ] && continue
     status=$(awk '/^status:/{print $2; exit}' "$f")
