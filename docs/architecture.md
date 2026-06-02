@@ -32,7 +32,9 @@ append `footer` record, flush, close
 The report is written as a stream: the header lands immediately, each
 sample is flushed as it is taken, and the footer is appended on exit.
 A `kill -9` therefore leaves a partial-but-usable file rather than
-nothing, and `tail -f` works during a capture.
+nothing, and `tail -f` works during a capture. The exact partial-file
+guarantee is the contract of
+[`requirements/capture-streaming-write.md`](requirements/capture-streaming-write.md).
 
 ## `rprof view` — render
 

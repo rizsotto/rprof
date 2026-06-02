@@ -164,8 +164,9 @@ exits 1 listing the gaps otherwise. Requirements at any other status
 - Design rationale, trade-offs, or rejected alternatives — those go in
   [`../rationale/`](../rationale/); link them from a `## Rationale`
   section.
-- Roadmap, goals, or non-goals — those live in
-  [`../../CLAUDE.md`](../../CLAUDE.md) under "Project overview".
+- Project goals or deliberate non-goals — those live in
+  [`../rationale/project-scope.md`](../rationale/project-scope.md). The
+  roadmap is the set of `status: planned` requirements in this directory.
 - Bug reports or to-dos — those belong in the issue tracker.
 
 The requirements directory captures **what the software must do**, not how

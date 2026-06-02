@@ -11,7 +11,7 @@ Keep the roles separate. A requirement says *what*; a rationale entry
 says *why*; the code says *how*. Reasoning does not belong in a
 requirement body, and a contract does not belong in a rationale entry.
 
-Standalone references live directly under `docs/`:
+Two cross-cutting references worth knowing:
 
 - [`architecture.md`](architecture.md) — how data flows through the two
   subcommands, end to end.

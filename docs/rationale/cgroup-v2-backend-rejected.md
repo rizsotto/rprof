@@ -15,8 +15,8 @@ whole process subtree rather than just the spawned child.
 
 ## Decision
 
-Rejected. Tree aggregation is an explicit non-goal (see the Non-goals
-section of the root [`CLAUDE.md`](../../CLAUDE.md)): rprof reports the
+Rejected. Tree aggregation is an explicit non-goal (see
+[`project-scope.md`](project-scope.md)): rprof reports the
 resource usage of the single child it spawned, and summing across a
 tree double-counts shared memory and FDs while hiding which descendant
 drove a spike. For that single-process scope, `/proc/<pid>` polling is
@@ -42,5 +42,5 @@ it works" goal.
 
 - [`../requirements/capture-proc-backend.md`](../requirements/capture-proc-backend.md)
   -- the backend kept instead.
-- Non-goals section of the root [`CLAUDE.md`](../../CLAUDE.md)
-  (process-tree resource aggregation).
+- [`project-scope.md`](project-scope.md) — the non-goal of
+  process-tree resource aggregation.

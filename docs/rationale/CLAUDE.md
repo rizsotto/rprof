@@ -59,7 +59,8 @@ section.
 
 A decision that was **only ever considered and declined** is born here
 as a rationale entry — it never became a contract, so it does not
-belong under `requirements/`. A requirement that shipped a real
-contract and was **later withdrawn** stays under `requirements/` with
+belong under [`../requirements/`](../requirements/). A requirement that
+shipped a real contract and was **later withdrawn** stays under
+`../requirements/` with
 `status: rejected` or `deferred` as a tombstone, and may link here for
 the full reasoning.
