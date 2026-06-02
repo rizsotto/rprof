@@ -25,6 +25,7 @@ feature that touches a non-goal needs a decision there first.
 
 | When you are about to... | Read first |
 |---|---|
+| Find project documentation, scope, or a how-to guide | [`docs/CLAUDE.md`](docs/CLAUDE.md) |
 | Understand how data flows end to end | [`docs/architecture.md`](docs/architecture.md) |
 | Add or change a CLI flag, subcommand, or runner/viewer flow | [`src/CLAUDE.md`](src/CLAUDE.md) |
 | Add or modify a unit or integration test | [`tests/CLAUDE.md`](tests/CLAUDE.md) |

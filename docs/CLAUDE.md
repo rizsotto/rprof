@@ -1,6 +1,12 @@
 # CLAUDE.md — `docs/` guide
 
-Project documentation lives here, split by the role each file plays:
+This is the index for project documentation — start here to find what
+each part holds. Today that is the contracts and the reasoning behind
+them; as the project grows, operational how-to guides (releasing,
+cutting a schema revision, and similar) will be written here too, each
+as its own file under `docs/`.
+
+Documentation is split by the role each file plays:
 
 | Directory | Holds | Guide |
 |---|---|---|
