@@ -39,6 +39,6 @@ already works portably on macOS.
 ## Notes
 
 - Out of scope for v1 per
-  [`../rationale/project-scope.md`](../rationale/project-scope.md) (Linux
-  is primary; macOS is best-effort).
+  [`../project-scope.md`](../project-scope.md) (Linux is primary; macOS
+  is best-effort).
 - Related: [`capture-proc-backend`](capture-proc-backend.md).

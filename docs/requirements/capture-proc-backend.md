@@ -40,7 +40,7 @@ files under `/proc/<pid>/`.
 
 - This backend samples one PID — the direct child of `rprof run`.
   Aggregating across the process tree is a non-goal (see
-  [`../rationale/project-scope.md`](../rationale/project-scope.md)).
+  [`../project-scope.md`](../project-scope.md)).
 - `/proc/<pid>/io` is empty for processes the caller cannot ptrace.
   When that happens, IO counters stay at zero for the whole run.
 - Linux only. macOS support via `libproc` / `proc_pidinfo` is planned

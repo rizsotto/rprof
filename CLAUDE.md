@@ -18,8 +18,8 @@ renders the result as a self-contained HTML report. Two subcommands:
 
 The project's goals and deliberate non-goals — what rprof will *not*
 become — are recorded in
-[`docs/rationale/project-scope.md`](docs/rationale/project-scope.md). A
-feature that touches a non-goal needs a decision there first.
+[`docs/project-scope.md`](docs/project-scope.md). A feature that touches
+a non-goal needs a decision there first.
 
 ## Routing — read before modifying
 

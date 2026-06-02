@@ -1,12 +1,9 @@
 # CLAUDE.md — `docs/` guide
 
 This is the index for project documentation — start here to find what
-each part holds. Today that is the contracts and the reasoning behind
-them; as the project grows, operational how-to guides (releasing,
-cutting a schema revision, and similar) will be written here too, each
-as its own file under `docs/`.
+each part holds.
 
-Documentation is split by the role each file plays:
+The two role-based subdirectories:
 
 | Directory | Holds | Guide |
 |---|---|---|
@@ -17,12 +14,12 @@ Keep the roles separate. A requirement says *what*; a rationale entry
 says *why*; the code says *how*. Reasoning does not belong in a
 requirement body, and a contract does not belong in a rationale entry.
 
-Two cross-cutting references worth knowing:
+Standalone reference documents directly under `docs/`:
 
+- [`project-scope.md`](project-scope.md) — the project's goals and
+  deliberate non-goals; the boundary every feature is weighed against.
 - [`architecture.md`](architecture.md) — how data flows through the two
   subcommands, end to end.
-- [`rationale/project-scope.md`](rationale/project-scope.md) — the
-  project's goals and deliberate non-goals.
 
 The user-facing CLI reference — flags, defaults, examples — is the
 top-level [`README.md`](../README.md), kept honest by the integration
