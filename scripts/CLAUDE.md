@@ -9,6 +9,7 @@ artefacts; these are humans-and-agents-only conveniences.
 | File | Purpose |
 |---|---|
 | `dogfood.sh` | Dogfood `rprof` by running it against a `cargo build` of its own source, then rendering the viewer. Default: build → capture release & debug profiles → render HTML. Subcommands: `build`, `capture`, `view`, `all`. |
+| `dogfood-refactoring.sh` | One-off demonstration. Clones HEAD and the pre-streaming commit, builds both, then uses HEAD's `rprof` to profile each running `cargo build`. The combined diff report shows the RSS gap between the streaming and the old in-memory capture strategy. Takes no arguments; runs the whole flow. |
 | `check-requirements-coverage.sh` | Verify every `status: implemented` requirement has at least one test tagged with `Requirements: <id>`. Exits non-zero with the list of gaps. Wired into the CI lint job; runnable locally. |
 
 ## When to reach for these
@@ -23,6 +24,11 @@ artefacts; these are humans-and-agents-only conveniences.
   typically 1–3 minutes total).
 - **Smoke-testing end-to-end after a non-trivial change.**
   Run `scripts/dogfood.sh` with no arguments.
+- **Demonstrating (or re-checking) the streaming capture payoff.**
+  Run `scripts/dogfood-refactoring.sh`. This is illustrative, not part
+  of routine iteration: it shallow-clones two checkouts and does two
+  release builds, so it is slow and network-bound. It writes its own
+  `report.html` under `dogfood/`, overwriting one left by `dogfood.sh`.
 
 Always prefer the script over hand-rolling the equivalent `cargo build && rprof run ...`
 sequence: the script keeps the workload directory isolated from the dev
@@ -39,6 +45,10 @@ All under `dogfood/` at the project root (gitignored):
   always cold.
 - `release.jsonl`, `debug.jsonl` — captured profiles.
 - `report.html` — the rendered, self-contained viewer page.
+
+`dogfood-refactoring.sh` reuses the same `dogfood/` directory: it adds
+`head/` and `before/` shallow clones, `head.jsonl` / `before.jsonl`
+captures, and its own `report.html` (the same path `dogfood.sh` uses).
 
 ## Rules
 
