@@ -40,21 +40,6 @@ request, or open by double-clicking.
   command containing literal `</script>` cannot break out of the
   `<script type="application/json">` element. (XSS hardening.)
 
-## Implementation details
-
-- `src/viewer.rs` embeds the four assets via `include_str!` at
-  compile time:
-  - `assets/uPlot.iife.min.js`
-  - `assets/uPlot.min.css`
-  - `assets/viewer.js`
-  - `assets/viewer.css`
-- `render_html()` concatenates a small HTML scaffold with the
-  embedded asset strings and the JSON payload.
-- The payload is built by `build_payload()` which serialises the
-  loaded runs and applies the `</` → `<\/` replacement.
-- See [`../assets/CLAUDE.md`](../assets/CLAUDE.md) for licensing
-  notes on the bundled assets.
-
 ## Known limitations
 
 - The HTML file is not minified. The viewer JS is small enough that
@@ -94,5 +79,7 @@ Given a report whose command line contains `</script>`:
 - The "no Node, no Python, no server" requirement is the central
   v1 acceptance criterion for the viewer. It is why uPlot was
   picked over heavier libraries.
+- The bundled assets and their licensing are documented in
+  [`../../assets/CLAUDE.md`](../../assets/CLAUDE.md).
 - Related: `viewer-diff-mode` (which builds on this requirement
   for multi-run reports).

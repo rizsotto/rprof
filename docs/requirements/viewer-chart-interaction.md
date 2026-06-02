@@ -80,22 +80,6 @@ one run or many.
 - A11y: the collapse toggle is a real `<button>` with an
   `aria-label`. Tab order and keyboard activation work.
 
-## Implementation details
-
-- Cross-panel sync uses uPlot's `cursor.sync` with a shared key for
-  every chart on the page.
-- Per-series snap-to-nearest-non-null (a related cursor concern
-  specific to sparse multi-run overlays) is described in
-  [`viewer-diff-mode`](viewer-diff-mode.md); it does not affect the
-  sync semantics described here.
-- Legend stability is delivered by CSS: `font-variant-numeric:
-  tabular-nums` on the legend container, plus a per-chart
-  `min-width` on the value cell. The widths are tuned in
-  `assets/viewer.css`.
-- The collapse button is a real `<button>`; the collapsed state is a
-  CSS class on the chart panel that hides everything except the
-  title row via `:not(.chart-title) { display: none }`.
-
 ## Known limitations
 
 - No "collapse all" / "expand all" shortcut.

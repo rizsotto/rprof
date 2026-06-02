@@ -82,18 +82,6 @@ label appears unadorned.
   must be a deliberate edit to this file plus the renderer plus a
   test.
 
-## Implementation details
-
-- The HTML scaffold in `src/viewer.rs::render_html` emits the
-  five empty container divs (`chart-cpu`, `chart-mem`,
-  `chart-threads`, `chart-fds`, `chart-io`) in the order above. The
-  summary table is also seeded empty.
-- `assets/viewer.js` reads the inlined payload, populates the summary
-  table, computes the IO rate columns, and instantiates one uPlot per
-  chart with the series defined above. The container IDs are an
-  implementation detail of the rendering layer and may change; the
-  contract is the *visible* inventory and order described above.
-
 ## Known limitations
 
 - The chart order is fixed; the user cannot reorder or hide charts

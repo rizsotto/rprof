@@ -66,18 +66,6 @@ at two browser tabs.
   colours wrap around and the chart becomes hard to read; the legend
   still works correctly.
 
-## Implementation details
-
-- `collect_inputs()` in `src/viewer.rs` merges positional args and
-  `--label` entries, preserving positional order and appending
-  labels-only entries afterward.
-- `render_html()` and the viewer JS in `assets/viewer.js` walk the
-  `runs` array in the inlined payload to build the summary table and
-  one or more uPlot series per metric.
-- The X axis is built as the sorted union of all `t_ms` values
-  across runs. Each run's Y array is `null`-padded for X values it
-  does not have, so uPlot's gap rendering does the right thing.
-
 ## Known limitations
 
 - No semantic diffing (e.g. "RSS grew by 12 %") is performed; the
