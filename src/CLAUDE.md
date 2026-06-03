@@ -15,6 +15,11 @@ module is for, then gets declared in `lib.rs`.
 
 ## Conventions
 
+The cross-cutting Rust house style lives in
+[`../.claude/rules/rust.md`](../.claude/rules/rust.md) and is applied
+automatically when you edit any `.rs` file. The sections below add only
+what is specific to *this* crate.
+
 ### Modules
 
 - Keep the module tree flat: top-level files under `src/`, declared in
@@ -55,12 +60,6 @@ module is for, then gets declared in `lib.rs`.
 - Every `/proc/<pid>` read must tolerate `ENOENT` mid-sample: a process
   can vanish between `readdir` and `open`. That is normal, not an error.
 
-### Error handling
-
-- `anyhow::Result` with `.context(…)` at the boundaries where a failure
-  needs explaining. No bespoke error enums, and no error paths for
-  states that cannot occur — `main.rs` turns any `Err` into exit 1.
-
 ### Computation lives in the reader
 
 - The writer records raw cumulative counters; the viewer derives the
@@ -77,28 +76,11 @@ module is for, then gets declared in `lib.rs`.
 
 ### Tests
 
-- Pure functions (parsers, derivations) get unit tests in an in-file
-  `#[cfg(test)] mod tests`, driven by fixture strings — that is why the
-  parsers take `&str` / `&[u8]` rather than opening files themselves.
-- Behavioural contracts get integration tests under `tests/`, each
-  tagged `// Requirements: <id>` (see
-  [`../docs/requirements/CLAUDE.md`](../docs/requirements/CLAUDE.md)).
-- Test fixtures are Cargo examples under `examples/`, invoked via the
-  shared `target/<profile>/examples/` path (see `alloc_fixture_bin()` in
-  `tests/runner_integration.rs`). The shipped binary exposes only `run`
-  and `view` — no hidden test-only subcommands.
-
-### Dependencies
-
-- Resist adding crates. The single-static-binary, no-runtime-deps goal
-  rides on a small dependency tree; a new dependency needs a real
-  justification, not convenience.
-
-## File headers
-
-Every `.rs` file under `src/` (and `tests/`) starts with
-`// SPDX-License-Identifier: MIT` as the very first line, before the
-`//!` module doc.
+How tests are written and where they live — in-file unit tests for pure
+functions, integration tests under `tests/`, the `examples/` workload
+fixtures, the `// Requirements: <id>` tags — is the test house style in
+[`../.claude/rules/testing.md`](../.claude/rules/testing.md) and
+[`../tests/CLAUDE.md`](../tests/CLAUDE.md).
 
 ## Contracts these modules implement
 

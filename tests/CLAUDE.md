@@ -16,20 +16,17 @@ the bottom of each `src/*.rs`).
 
 ## Conventions
 
-- Every test file is gated with `#![cfg(target_os = "linux")]` because the
-  runner requires `/proc`. File-header rules (SPDX) are documented once in
-  [`../src/CLAUDE.md`](../src/CLAUDE.md) and apply equally here.
-- Tests must clean up after themselves. Use `tempfile::tempdir()` for any
-  files; never write into the repo root or `./.rprof/` (except the one test
-  that exercises the auto-output path, which uses `current_dir()` on a
-  tempdir).
-- The `alloc_fixture` example binary (`examples/alloc_fixture.rs`) is the
-  canonical way to produce a workload with a known RSS footprint. Reach
-  for it instead of `dd`/`python`/etc.; the integration helper
-  `alloc_fixture_bin()` builds it on demand and returns its path.
-- Spawn `rprof` via `env!("CARGO_BIN_EXE_rprof")`, never via `cargo run`.
-- Avoid sleeps longer than 1 second. The whole suite should finish in a
-  couple of seconds on a developer laptop.
+The general test house style is in
+[`../.claude/rules/testing.md`](../.claude/rules/testing.md) (and the Rust
+house style in [`../.claude/rules/rust.md`](../.claude/rules/rust.md)),
+applied automatically when you edit any `.rs` file. The harness specifics
+for *this* directory:
+
+- Every test file is gated whole-file with `#![cfg(target_os = "linux")]`
+  because the runner requires `/proc`.
+- The one exception to the "never write into the repo root or `./.rprof/`"
+  rule is the test that exercises the auto-output path, which uses
+  `current_dir()` on a tempdir.
 
 ## Requirements traceability
 

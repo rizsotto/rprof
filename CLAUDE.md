@@ -25,6 +25,7 @@ a non-goal needs a decision there first.
 
 | When you are about to... | Read first |
 |---|---|
+| Write or change any Rust code or test (house style) | [`.claude/rules/`](.claude/rules/) — auto-applied to every `**/*.rs` |
 | Find project documentation, scope, or a how-to guide | [`docs/CLAUDE.md`](docs/CLAUDE.md) |
 | Understand how data flows end to end | [`docs/architecture.md`](docs/architecture.md) |
 | Add or change a CLI flag, subcommand, or runner/viewer flow | [`src/CLAUDE.md`](src/CLAUDE.md) |
@@ -78,12 +79,10 @@ requirement if one exists.
 
 ### Code style
 
-- Rust 2021 edition. MSRV `1.75` (see `Cargo.toml`).
-- Prefer editing existing files over adding modules. No speculative
-  abstractions, no error handling for impossible cases.
-- Comments explain *why*, not *what*; default to none unless a subtle
-  invariant would otherwise need re-deriving. The SPDX file-header rule
-  is in [`src/CLAUDE.md`](src/CLAUDE.md).
+The Rust and test house style lives in [`.claude/rules/`](.claude/rules/)
+and is applied automatically when you edit any `.rs` file. The
+per-directory `CLAUDE.md` files add only the rprof-specific constraints on
+top of it.
 
 ## Licensing
 
