@@ -5,11 +5,14 @@ description: Cut a release of rprof — bump the crate version, run the full che
 
 # Release rprof
 
-Cut a release of the `rprof` crate. The process is manual today: there is
-no `cargo-dist`, no release workflow, and no `CHANGELOG` — only the CI
-lint + test job. Drive the steps below, and **confirm with the user
-before any outward-facing action** (pushing a tag, creating a GitHub
-release, publishing to crates.io). None of those can be cleanly undone.
+Cut a release of the `rprof` crate. There is no `cargo-dist` and no
+`CHANGELOG`, but publishing **is** automated: pushing a `v*` tag triggers
+`.github/workflows/release.yml`, which re-runs the check set and then
+`cargo publish`es to crates.io. So the human gate is the *tag push* —
+once a `v*` tag reaches GitHub, the crate is published with no further
+confirmation, and that cannot be cleanly undone (only yanked). Drive the
+steps below and **confirm with the user before any outward-facing
+action** (pushing the tag, creating a GitHub release).
 
 ## Before you start
 
@@ -40,18 +43,36 @@ release, publishing to crates.io). None of those can be cleanly undone.
    `./target/release/rprof run -- true` writes a report.
 4. **Commit** on `master`: `chore: release v<X.Y.Z>`.
 5. **Tag** (confirm first): `git tag -a v<X.Y.Z> -m "rprof v<X.Y.Z>"`.
-6. **Push** (confirm first): `git push origin master --tags`.
+6. **Push** (confirm first — this is the point of no return). Push
+   `master` first, then the tag:
+   ```bash
+   git push origin master
+   git push origin v<X.Y.Z>
+   ```
+   Pushing the tag triggers `.github/workflows/release.yml`, which gates
+   on the check set and then publishes to crates.io automatically. Watch
+   the run (`gh run watch`) and confirm it goes green before announcing
+   the release.
 7. **GitHub release** (confirm first): create a release for the tag with
    `gh release create v<X.Y.Z>`. Draft notes from
    `git log <previous-tag>..v<X.Y.Z>` (or the full log for the first
    release). Attach the `target/release/rprof` binary from step 3 if a
    downloadable artefact is wanted.
 
-## Optional: publish to crates.io
+## crates.io publishing
 
-Only if the user asks to publish there. Run `cargo publish --dry-run`
-first and show the output; a real `cargo publish` cannot be undone, only
-yanked. It needs an unpublished version and the manifest metadata
+Handled automatically by the release workflow on tag push (step 6); you
+do not run `cargo publish` by hand. Two preconditions the workflow can't
+fix for you:
+
+- The repo secret `CRATES_TOKEN` must be set (GitHub → Settings →
+  Secrets and variables → Actions) to a crates.io API token with
+  publish scope.
+- The version in `Cargo.toml` must be unpublished — crates.io rejects a
+  re-publish, so the bump in step 2 is mandatory.
+
+To sanity-check before tagging, run `cargo publish --dry-run --locked`
+locally and show the output. The manifest already carries the metadata
 crates.io requires (`description`, `license`, `repository`).
 
 ## Notes
@@ -60,3 +81,6 @@ crates.io requires (`description`, `license`, `repository`).
   are not yet set up; they are tracked in the issue tracker, not under
   `docs/requirements/` (see `docs/project-scope.md`). If one lands later,
   update the corresponding step here.
+- The publish workflow lives in `.github/workflows/release.yml`. If its
+  trigger or steps change (e.g. the check set, or the tag glob), keep
+  step 6 above in sync.
