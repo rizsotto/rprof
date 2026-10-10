@@ -17,7 +17,7 @@ use anyhow::{Context, Result};
 use crate::cli::ViewArgs;
 use crate::schema::{Footer, Header, Record, Sample};
 
-/// uPlot 1.6.31 — MIT licensed. Vendored under `assets/` and embedded at build
+/// uPlot 1.6.32 — MIT licensed. Vendored under `assets/` and embedded at build
 /// time so the viewer needs no network access and produces a single-file HTML.
 const UPLOT_JS: &str = include_str!("../assets/uPlot.iife.min.js");
 const UPLOT_CSS: &str = include_str!("../assets/uPlot.min.css");

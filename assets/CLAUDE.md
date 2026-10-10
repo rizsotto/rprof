@@ -8,8 +8,8 @@ report `rprof view` emits.
 
 | File | Origin | Licence |
 |---|---|---|
-| `uPlot.iife.min.js` | Vendored from upstream uPlot 1.6.31 (https://github.com/leeoniya/uPlot) | MIT (see [`uPlot.LICENSE`](uPlot.LICENSE)) |
-| `uPlot.min.css` | Vendored from upstream uPlot 1.6.31 (https://github.com/leeoniya/uPlot) | MIT (see [`uPlot.LICENSE`](uPlot.LICENSE)) |
+| `uPlot.iife.min.js` | Vendored from upstream uPlot 1.6.32 (https://github.com/leeoniya/uPlot) | MIT (see [`uPlot.LICENSE`](uPlot.LICENSE)) |
+| `uPlot.min.css` | Vendored from upstream uPlot 1.6.32 (https://github.com/leeoniya/uPlot) | MIT (see [`uPlot.LICENSE`](uPlot.LICENSE)) |
 | `uPlot.LICENSE` | Upstream LICENSE preserved verbatim | MIT |
 | `viewer.js` | First-party rprof code | MIT (project licence) |
 | `viewer.css` | First-party rprof page styles | MIT (project licence) |
@@ -21,7 +21,7 @@ report `rprof view` emits.
 Do not hand-edit `uPlot.iife.min.js` or `uPlot.min.css`. To upgrade uPlot:
 
 ```bash
-VER=1.6.31  # or newer
+VER=1.6.32  # or newer
 curl -sSL -o assets/uPlot.iife.min.js https://unpkg.com/uplot@${VER}/dist/uPlot.iife.min.js
 curl -sSL -o assets/uPlot.min.css      https://unpkg.com/uplot@${VER}/dist/uPlot.min.css
 ```

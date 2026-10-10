@@ -87,5 +87,5 @@ top of it.
 ## Licensing
 
 MIT (see `LICENSE`). Bundled assets are covered in
-[`assets/CLAUDE.md`](assets/CLAUDE.md) — currently only uPlot 1.6.31
+[`assets/CLAUDE.md`](assets/CLAUDE.md) — currently only uPlot 1.6.32
 (MIT) is vendored.
