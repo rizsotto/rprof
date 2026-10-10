@@ -11,8 +11,8 @@ constraints on top of these (the `Sampler` seam, the single sampler
 thread, the `/proc` read discipline, computation-in-the-reader); they do
 not restate what is here.
 
-- **Edition / MSRV**: Rust 2021 idioms; MSRV `1.75` (see `Cargo.toml`).
-  Don't reach for language or library features newer than 1.75.
+- **Edition / MSRV**: Rust 2021 idioms; MSRV `1.85` (see `Cargo.toml`).
+  Don't reach for language or library features newer than 1.85.
 - **File header**: every `.rs` file — under `src/`, `tests/`, and
   `examples/` — starts with `// SPDX-License-Identifier: MIT` as its very
   first line, before any `//!` module doc. rprof is MIT (see `LICENSE`).

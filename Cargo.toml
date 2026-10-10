@@ -2,7 +2,7 @@
 name = "rprof"
 version = "1.0.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.85"
 license = "MIT"
 description = "Process resource profiler — captures CPU and memory usage of a child process and renders charts in a browser."
 repository = "https://github.com/rizsotto/rprof"
